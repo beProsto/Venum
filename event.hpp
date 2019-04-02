@@ -8,6 +8,10 @@
 namespace ven
 {
 
+/* Easy to use Event struct containing: */
+ /* SDL_Event named "Event"   */
+ /* Keyboard named "Keyboard" */
+ /* Mouse named "Mouse"       */
 struct Event
 {
     SDL_Event Event;
