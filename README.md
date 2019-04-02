@@ -26,7 +26,7 @@ That's pretty much everything.
 
 
 // How to learn "venum"
-Now. You can learn about everything in venum from: 
+Now. You can learn about everything about venum from: 
 - Examples ( examples folder )
 - Reading all the files
 - Reading documentation ( it's my fav, and yes - I'm in the process of creating it xd )
