@@ -1,6 +1,6 @@
 # venum
 
-// Introduction, skip this part if you are not intrested
+# Introduction, skip this part if you are not intrested
 
 So yeah, how to start it...
 "venum" as i like to call it, is kind of a game engine. 
@@ -15,7 +15,7 @@ I think I will create some sort of GUI for venum.
 I mean: Scene editors, Shader editors, etc..
 
 
-// How to install, and use "venum"
+# How to install, and use "venum"
 
 It's pretty easy. You just include all of these files in your code. 
 But, before you do that, you will have to:
@@ -28,7 +28,7 @@ But, before you do that, you will have to:
 That's pretty much everything. 
 
 
-// How to learn "venum"
+# How to learn "venum"
 
 Now. You can learn everything about venum from: 
 - Examples ( examples folder )
