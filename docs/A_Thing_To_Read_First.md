@@ -1,9 +1,9 @@
-#The documentation
+# The documentation
 
 It will look something like this:
 __________________________________________________________________________________________________________________________________________
 
-#Class/Function Name
+# Class/Function Name
 
 - What it does, what it's for...
 
