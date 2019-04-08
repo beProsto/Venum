@@ -7,9 +7,10 @@
 namespace ven
 {
 
-struct Vertex
+struct StandardVertex
 {
     glm::vec3 Position;
+    glm::vec4 Color;
 };
 
 
