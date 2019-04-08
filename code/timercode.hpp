@@ -2,7 +2,7 @@
 #define TIMERCODE_HPP_INCLUDED
 
 ven::Timer::Timer(  )
-: timeScale( 0 ), timeStart( 0 ), timeElapsed( 0 ), deltaTime( 0 )
+: timeStart( 0 ), timeElapsed( 0 ), deltaTime( 0 ), timeScale( 0 )
 {  }
 
 ven::Timer::~Timer(  )

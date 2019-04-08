@@ -19,6 +19,19 @@ void ven::Renderer::Clean( glm::vec3 _color )
     GLCall( glClear( GL_COLOR_BUFFER_BIT | this->CLEANING_ADDITIONAL_FLAGS ) );
 }
 
+void ven::Renderer::DrawIndices( const ven::ShaderCombiner& _shader, const ven::VertexArray& _vao,const  ven::VertexBuffer& _vbo, const ven::IndexBuffer& _ibo, unsigned int _type )
+{
+    _shader.Bind(  );
+    _vao.Bind(  );
+    _vbo.Bind(  );
+    _ibo.Bind(  );
+    GLCall(glDrawElements( _type, _ibo.GetCount(  ), GL_UNSIGNED_INT, nullptr ));
+    _ibo.UnBind(  );
+    _vbo.UnBind(  );
+    _vao.UnBind(  );
+    _shader.UnBind(  );
+}
+
 void ven::Renderer::PushCleaningFlags( unsigned int _ADD_CLEANING_FLAGS )
 {
     this->CLEANING_ADDITIONAL_FLAGS = this->CLEANING_ADDITIONAL_FLAGS | _ADD_CLEANING_FLAGS;

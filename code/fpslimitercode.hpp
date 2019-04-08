@@ -1,9 +1,9 @@
 #ifndef FPSLIMITERCODE_HPP_INCLUDED
 #define FPSLIMITERCODE_HPP_INCLUDED
 
-ven::FPSLimiter::FPSLimiter( unsigned int _fpsinvertal )
+ven::FPSLimiter::FPSLimiter( unsigned int _fpslimit )
 {
-    this->SetFrameRateLimitInvertal( _fpsinvertal );
+    this->SetFrameRateLimit( _fpslimit );
 }
 
 ven::FPSLimiter::~FPSLimiter(  )
@@ -11,34 +11,28 @@ ven::FPSLimiter::~FPSLimiter(  )
 
 }
 
-void ven::FPSLimiter::SetFrameRateLimitInvertal( unsigned int _fpsinvertal )
+void ven::FPSLimiter::SetFrameRateLimit( unsigned int _fpslimit )
 {
-    this->fpsinvertal = _fpsinvertal;
+    this->fpslimit = _fpslimit;
 }
 
-void ven::FPSLimiter::Start(  )
+void ven::FPSLimiter::UpdateStart(  )
 {
-    this->cycle = SDL_GetTicks(  ) + this->fpsinvertal;
+    this->cycle = SDL_GetTicks(  );
 }
 
-void ven::FPSLimiter::Update(  )
-{
-    SDL_Delay( this->TimeLeft(  ) );
-    this->cycle += this->fpsinvertal;
-}
-
-unsigned int ven::FPSLimiter::TimeLeft(  )
+void ven::FPSLimiter::UpdateEnd(  )
 {
     unsigned int now;
-    now = SDL_GetTicks(  );
+    unsigned int difference;
+    float delay;
 
-    if( this->cycle <= now )
+    now = SDL_GetTicks(  );
+    difference = now - this->cycle;
+    delay = ( 1000.0f / this->fpslimit ) - difference;
+    if( delay > 0 )
     {
-        return 0;
-    }
-    else
-    {
-        return this->cycle - now;
+        SDL_Delay( delay );
     }
 }
 
