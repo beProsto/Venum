@@ -22,6 +22,8 @@ But, before you do that, you will have to:
 
 1) Include and link newest GLEW version in your project:
 - http://glew.sourceforge.net/
+3) Include newest GLM version in your project:
+- https://glm.g-truc.net/0.9.9/index.html
 2) Include and link SDL2 in your project:
 - https://www.libsdl.org/download-2.0.php
 
