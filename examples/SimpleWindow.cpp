@@ -8,8 +8,8 @@ int main( int argc, char** argv )
 {
 	/* Creating Window named "window" with a title "Title of a Window" */
 	ven::Window window( "Title of a Window" );
-	/* Creating FPSLimiter named "fps" with limit of 60 fps (15 is the invertion) */
-    	ven::FPSLimiter fps( 15 );
+	/* Creating FPSLimiter named "fps" with limit of 30 fps */
+    	ven::FPSLimiter fps;
 		
 	/* Creating Event named "event" */
     	ven::Event event;
