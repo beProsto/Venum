@@ -4,6 +4,7 @@
 namespace ven
 {
 
+/* Timer class */
 class Timer
 {
     public:

@@ -7,18 +7,16 @@ namespace ven
 class FPSLimiter
 {
     public:
-        FPSLimiter( unsigned int _fpsinvertal = 15 );
+        FPSLimiter( unsigned int _fpslimit = 30 );
         ~FPSLimiter(  );
 
-        void SetFrameRateLimitInvertal( unsigned int _fpsinvertal );
+        void SetFrameRateLimit( unsigned int _fpslimit );
 
-        void  Start(  );
-        void Update(  );
+        void UpdateStart(  );
+        void UpdateEnd(  );
 
     private:
-        unsigned int TimeLeft(  );
-
-        unsigned int fpsinvertal;
+        unsigned int fpslimit;
         unsigned int cycle;
 };
 

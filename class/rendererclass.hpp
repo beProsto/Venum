@@ -13,7 +13,8 @@ class Renderer
         void PushCleaningFlags( unsigned int _ADD_CLEANING_FLAGS );
         void ChangeCleaningFlags( unsigned int _CLEANING_FLAGS );
 
-        void Draw(  );
+        void DrawIndices( const ShaderCombiner& _shader, const VertexArray& _vao, const VertexBuffer& _vbo, const IndexBuffer& _ibo, unsigned int _type = GL_TRIANGLES );
+
         void Clean(  );
         void Clean( glm::vec3 _color );
 
