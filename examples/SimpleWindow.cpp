@@ -19,12 +19,11 @@ int main( int argc, char** argv )
 	/* Creating Renderer named "renderer" */
 	ven::Renderer renderer;
 		
-	/* Starting fps measurements */
-	fps.Start(  );
-		
 	/* Loop running while the window is running */
 	while( window.Running(  ) )
 	{
+		/* Starting fps measurements in this frame */
+		fps.UpdateStart(  );
 		/* Polling an Event from "window". Returns true, if event happened. */
         	window.PollEvent( &event.Event );
 				
@@ -34,7 +33,7 @@ int main( int argc, char** argv )
 		/* Swapping windows buffer */
 		window.Swapb(  );
 		/* Updating fps */
-        	fps.Update(  );
+        	fps.UpdateEnd(  );
 	}
 		
 	/* Returning 0 when program closes */
