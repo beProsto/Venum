@@ -26,6 +26,8 @@ But, before you do that, you will have to:
 - https://glm.g-truc.net/0.9.9/index.html
 2) Include and link SDL2 in your project:
 - https://www.libsdl.org/download-2.0.php
+3) Include and link SDL2_image in your project:
+- https://www.libsdl.org/projects/SDL_image/
 
 That's pretty much everything. 
 
@@ -36,3 +38,5 @@ Now. You can learn everything about venum from:
 - Examples ( examples folder )
 - Reading all the files
 - Reading documentation ( it's my fav, and yes - I'm in the process of creating it xd )
+
+## I'm reorganizing the project, so there will be a rly big update
