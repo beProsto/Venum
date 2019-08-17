@@ -2,18 +2,13 @@
 
 # Introduction, skip this part if you are not intrested
 
-So yeah, how to start it...
 "venum" as i like to call it, is kind of a game engine. 
 What I really think it is, is my take on learning OpenGL, in future Vulkan and DirectX.
 I don't intend it to be a full-blown game engine. I want it to be an experimental thing, like my "programming playground". 
 The name was suggested by my friend. I like it.
 
 For creating windows and event handling I'm using SDL2. 
-All the rest are graphical API's and ( if ) my physics engine.
-
-I think I will create some sort of GUI for venum. 
-I mean: Scene editors, Shader editors, etc..
-
+All the rest are graphical API's and (if) my physics engine.
 
 # How to install, and use "venum"
 
@@ -28,6 +23,9 @@ But, before you do that, you will have to:
 - https://www.libsdl.org/download-2.0.php
 3) Include and link SDL2_image in your project:
 - https://www.libsdl.org/projects/SDL_image/
+4) Include and link SDL2_mixer in your project (I will use it untill i'll learn OpenAL):
+- https://www.libsdl.org/projects/SDL_mixer/
+
 
 That's pretty much everything. 
 
@@ -35,8 +33,8 @@ That's pretty much everything.
 # How to learn "venum"
  
 Now. You can learn everything about venum from: 
-- Examples ( examples folder )
-- Reading all the files
-- Reading documentation ( it's my fav, and yes - I'm in the process of creating it xd )
+- Examples (examples folder)
+- Reading the source 
+- Reading documentation (it's my fav, and yes - I'm in the process of creating it)
 
 ## I'm reorganizing the project, so there will be a rly big update
