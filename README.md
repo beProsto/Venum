@@ -1,14 +1,15 @@
 # Venum 
 
+
 ## Introduction, skip this part if you are not intrested
 
-"Venum" as i like to call it, is kind of a game engine. 
+"Venum" as I'll call it, is kind of a game engine. 
 What I really think it is, is my take on learning OpenGL, in future Vulkan and DirectX.
 I don't intend it to be a full-blown game engine. I want it to be an experimental thing, like my "programming playground". 
-The name was suggested by my friend. I like it.
 
 For creating windows, event handling and image loading I'm using SDL2. 
 All the rest are graphical API's and (if) my physics engine.
+
 
 ## How to install, and use "Venum"
 
@@ -27,7 +28,7 @@ But, before you do that, you will have to:
 - https://www.libsdl.org/projects/SDL_mixer/
 
 
-That's pretty much everything. 
+That's pretty much everything. The only thing left now is to download this repository, and check if you've done everything right.
 
 
 ## How to learn "Venum"
@@ -36,5 +37,6 @@ Now. You can learn everything about venum from:
 - Examples (examples folder - I'm in the process of creating it)
 - Reading the source 
 - Reading documentation (it's my fav, and yes - I'm in the process of creating it)
+
 
 ### I'm reorganizing the project, so there will be a rly big update
