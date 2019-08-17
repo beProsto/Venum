@@ -1,16 +1,16 @@
-# venum
+### Venum 
 
 # Introduction, skip this part if you are not intrested
 
-"venum" as i like to call it, is kind of a game engine. 
+"Venum" as i like to call it, is kind of a game engine. 
 What I really think it is, is my take on learning OpenGL, in future Vulkan and DirectX.
 I don't intend it to be a full-blown game engine. I want it to be an experimental thing, like my "programming playground". 
 The name was suggested by my friend. I like it.
 
-For creating windows and event handling I'm using SDL2. 
+For creating windows, event handling and image loading I'm using SDL2. 
 All the rest are graphical API's and (if) my physics engine.
 
-# How to install, and use "venum"
+# How to install, and use "Venum"
 
 It's pretty easy. You just include all of these files in your code. 
 But, before you do that, you will have to:
@@ -30,11 +30,11 @@ But, before you do that, you will have to:
 That's pretty much everything. 
 
 
-# How to learn "venum"
+# How to learn "Venum"
  
 Now. You can learn everything about venum from: 
-- Examples (examples folder)
+- Examples (examples folder - I'm in the process of creating it)
 - Reading the source 
 - Reading documentation (it's my fav, and yes - I'm in the process of creating it)
 
-## I'm reorganizing the project, so there will be a rly big update
+# I'm reorganizing the project, so there will be a rly big update
