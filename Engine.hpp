@@ -7,17 +7,9 @@
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_mixer.h>
 
-#include "glm/glm/glm.hpp"
-#include "glm/glm/gtc/type_ptr.hpp"
-#include "glm/glm/gtx/transform.hpp"
-namespace glm {
-    typedef glm::vec<2, int, glm::defaultp> vec2i;
-    typedef glm::vec<2, unsigned int, glm::defaultp> vec2ui;
-
-    vec3 to_vec3(const vec4& v) {
-        return vec3(v.x / v.w, v.y / v.w, v.z / v.w);
-    }
-}
+#include <glm/glm/glm.hpp>
+#include <glm/glm/gtc/type_ptr.hpp>
+#include <glm/glm/gtx/transform.hpp>
 
 #include <iostream>
 #include <string>
@@ -29,33 +21,6 @@ namespace glm {
 #include <cstdlib>
 #include <ctime>
 #include <memory>
-
-template<size_t C, typename T>
-class Vector {
-public:
-    T m_Value[C];
-
-    #if C > 0
-    T& x = m_Value[0];
-    T& r = m_Value[0];
-    T& u = m_Value[0];
-    #endif // C
-    #if C > 1
-    T& y = m_Value[1];
-    T& g = m_Value[1];
-    T& v = m_Value[1];
-    #endif // C
-    #if C > 2
-    T& z = m_Value[2];
-    T& b = m_Value[2];
-    #endif // C
-    #if C > 3
-    T& w = m_Value[2];
-    T& a = m_Value[2];
-    #endif // C
-
-};
-
 
 std::string LoadStringFromFile(const std::string& a_Filename) {
     std::ifstream f_File;
@@ -113,7 +78,7 @@ class ViewportClass {
                 glViewport(Position.x, Position.y, Size.x, Size.y);
             }
         }
-        void Update(glm::vec2i a_Position, glm::vec2ui a_Size) {
+        void Update(glm::vec2 a_Position, glm::vec2 a_Size) {
             Position = a_Position;
             Size = a_Size;
             if(RendererAPI::GetAPI() == API::OpenGL) {
@@ -122,12 +87,12 @@ class ViewportClass {
         }
 
         float GetAspect() {
-            return static_cast<float>(Size.x) / static_cast<float>(Size.y);
+            return Size.x / Size.y;
         }
 
     public:
-        glm::vec2i  Position;
-        glm::vec2ui Size;
+        glm::vec2 Position;
+        glm::vec2 Size;
 };
 ViewportClass Viewport;
 
