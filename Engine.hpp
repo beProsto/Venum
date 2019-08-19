@@ -120,7 +120,9 @@ class WindowClass {
             m_Running = true;
         }
         ~WindowClass() {
-            SDL_GL_DeleteContext(m_Context);
+            if(RendererAPI::GetAPI() == API::OpenGL) {
+                SDL_GL_DeleteContext(m_Context);
+            }
             SDL_DestroyWindow(m_Window);
             #ifdef Mixer
             Mix_Quit();
@@ -144,24 +146,25 @@ class WindowClass {
 
             m_Window = SDL_CreateWindow(a_Title.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, a_Width, a_Height, (RendererAPI::GetAPI() == API::OpenGL ? SDL_WINDOW_OPENGL : SDL_WINDOW_VULKAN) | a_Flags);
 
-            m_Context = SDL_GL_CreateContext(m_Window);
+            if(RendererAPI::GetAPI() == API::OpenGL) {
+                m_Context = SDL_GL_CreateContext(m_Window);
 
-            SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
-            SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
-            SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
-            SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 8);
-            SDL_GL_SetAttribute(SDL_GL_BUFFER_SIZE, 32);
+                SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
+                SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
+                SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
+                SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 8);
+                SDL_GL_SetAttribute(SDL_GL_BUFFER_SIZE, 32);
 
-            SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
+                SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
 
-            SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+                SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 
-            glewExperimental = GL_TRUE;
-            if(glewInit(  ) != GLEW_OK) {
-                std::cerr << "Can't initialize GLEW!" << std::endl;
-                return false;
+                glewExperimental = GL_TRUE;
+                if(glewInit(  ) != GLEW_OK) {
+                    std::cerr << "Can't initialize GLEW!" << std::endl;
+                    return false;
+                }
             }
-
             Viewport.Update(glm::vec2(0, 0), glm::vec2(GetWidth(), GetHeight()));
 
             #ifdef VENUM_DEBUG_EXTREME
@@ -181,13 +184,10 @@ class WindowClass {
             m_Running = false;
         }
 
-        bool PollEvent(SDL_Event* a_Event) {
-            if(SDL_PollEvent(a_Event)) {
-                if(a_Event->type == SDL_QUIT) {
-                    #ifdef VENUM_DEBUG_EXTREME
-                    std::cout << "Window Closed! " << std::endl;
-                    #endif // VENUM_DEBUG_EXTREME
-                    m_Running = false;
+        bool PollEvent(SDL_Event& a_Event) {
+            if(SDL_PollEvent(&a_Event)) {
+                if(a_Event.type == SDL_QUIT) {
+                    Close();
                 }
                 return true;
             }
@@ -1203,6 +1203,95 @@ class Collider {
         glm::vec3 Size;
         float Radius;
 };
+class PhysicsBody {
+    public:
+        PhysicsBody(const Collider& a_Collider = Collider()) {
+            m_Collider = a_Collider;
+        }
+        ~PhysicsBody() {
 
+        }
+
+        const Collider& GetCollider() const {
+            return m_Collider;
+        }
+        const std::vector<glm::vec3>& GetForces() const {
+            return m_Forces;
+        }
+
+        Collider& GetColliderRef() {
+            return m_Collider;
+        }
+        std::vector<glm::vec3>& GetForcesRef() {
+            return m_Forces;
+        }
+
+        void SetCollider(const Collider& a_Collider) {
+            m_Collider = a_Collider;
+        }
+
+    private:
+        Collider m_Collider;
+        std::vector<glm::vec3> m_Forces;
+};
+class SimplePhysics {
+    public:
+        SimplePhysics() {
+
+        }
+        ~SimplePhysics() {
+
+        }
+
+        void Update(float a_DeltaTime = 1.0f) {
+            if(m_PhysicsBodys.size() > 1) {
+                for(unsigned int i = 0; i < m_PhysicsBodys.size(); i++) {
+                    bool f_IsColliding[m_PhysicsBodys[i]->GetForces().size()];
+                    for(unsigned int k = 0; k < m_PhysicsBodys[i]->GetForces().size(); k++) {
+                        f_IsColliding[k] = false;
+                    }
+
+                    for(unsigned int j = 0; j < m_PhysicsBodys.size(); j++) {
+                        if(i != j) {
+                            for(unsigned int k = 0; k < m_PhysicsBodys[i]->GetForces().size(); k++) {
+                                Collider f_Tester = m_PhysicsBodys[i]->GetCollider();
+                                f_Tester.Position += (m_PhysicsBodys[i]->GetForces()[k] * glm::vec3(a_DeltaTime)) / glm::vec3(static_cast<float>(m_PhysicsBodys.size()) - 1.0f);
+
+                                if(f_Tester.Intersects(m_PhysicsBodys[j]->GetCollider())) {
+                                    f_IsColliding[k] = true;
+                                }
+                            }
+                        }
+                    }
+
+                    for(unsigned int j = 0; j < m_PhysicsBodys.size(); j++) {
+                        if(i != j) {
+                            for(unsigned int k = 0; k < m_PhysicsBodys[i]->GetForces().size(); k++) {
+                                if(!f_IsColliding[k]) {
+                                    m_PhysicsBodys[i]->GetColliderRef().Position += (m_PhysicsBodys[i]->GetForces()[k] * glm::vec3(a_DeltaTime)) / glm::vec3(static_cast<float>(m_PhysicsBodys.size()) - 1.0f);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            else if(m_PhysicsBodys.size() == 1) {
+                for(unsigned int k = 0; k < m_PhysicsBodys[0]->GetForces().size(); k++) {
+                    m_PhysicsBodys[0]->GetColliderRef().Position += m_PhysicsBodys[0]->GetForces()[k] * glm::vec3(a_DeltaTime);
+                }
+            }
+        }
+
+        const std::vector<PhysicsBody*>& GetPhysicsBodys() const {
+            return m_PhysicsBodys;
+        }
+
+        std::vector<PhysicsBody*>& GetPhysicsBodysRef() {
+            return m_PhysicsBodys;
+        }
+
+    private:
+        std::vector<PhysicsBody*> m_PhysicsBodys;
+};
 
 #endif // ENGINE_HPP_INCLUDED
