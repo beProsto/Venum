@@ -34,7 +34,7 @@ That's pretty much everything. The only thing left now is to download this repos
 ## How to learn "Venum"
  
 Now. You can learn everything about venum from: 
-- Examples (examples folder - I'm in the process of creating it)
+- Examples (Examples folder - I'm in the process of creating it)
 - Reading the source 
 - Reading documentation (it's my fav, and yes - I'm in the process of creating it)
 
