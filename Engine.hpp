@@ -5,11 +5,14 @@
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
+#ifdef Mixer
 #include <SDL2/SDL_mixer.h>
+#endif // Mixer
 
-#include <glm/glm/glm.hpp>
-#include <glm/glm/gtc/type_ptr.hpp>
-#include <glm/glm/gtx/transform.hpp>
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/glm.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <glm/gtx/transform.hpp>
 
 #include <iostream>
 #include <string>
@@ -34,26 +37,29 @@ std::string LoadStringFromFile(const std::string& a_Filename) {
             f_Result += f_Line;
             f_Result += '\n';
         }
+        #ifdef VENUM_DEBUG_EXTREME
+        std::cout << "Loaded file: '" << a_Filename << "' Using 'LoadStringFromFile' Function! " << std::endl;
+        #endif // VENUM_DEBUG_EXTREME
 
         return f_Result;
     }
     else {
-        std::cerr << "Unable to load file: '" << a_Filename << "'!" << std::endl;
+        std::cerr << "Unable to load file from string: '" << a_Filename << "'!" << std::endl;
         return "";
     }
 }
 template <typename T> T Map(T a_Value, T a_Start1, T a_Stop1, T a_Start2, T a_Stop2) {
 	return ((a_Value - a_Start1) / (a_Stop1 - a_Start1)) * (a_Stop2 - a_Start2) + a_Start2;
 }
-template <typename T> T Constrain(T n, T start, T stop) {
-    if(n < start) {
-        return start;
+template <typename T> T Constrain(T a_Value, T a_Start, T a_Stop) {
+    if(a_Value < a_Start) {
+        return a_Start;
     }
-    else if(n > stop) {
-        return stop;
+    else if(a_Value > a_Stop) {
+        return a_Stop;
     }
     else {
-        return n;
+        return a_Value;
     }
 }
 
@@ -63,6 +69,9 @@ enum class API {
 class RendererAPI {
     public:
         static API GetAPI() {
+            #ifdef VENUM_DEBUG_EXTREME
+            std::cout << "'GetAPI()' Used! " << std::endl;
+            #endif // VENUM_DEBUG_EXTREME
             return s_API;
         }
 
@@ -77,6 +86,9 @@ class ViewportClass {
             if(RendererAPI::GetAPI() == API::OpenGL) {
                 glViewport(Position.x, Position.y, Size.x, Size.y);
             }
+            #ifdef VENUM_DEBUG_EXTREME
+            std::cout << "Viewport set to: " << Position.x << " : " << Position.y << " ; " << Size.x << " : " << Size.y << std::endl;
+            #endif // VENUM_DEBUG_EXTREME
         }
         void Update(glm::vec2 a_Position, glm::vec2 a_Size) {
             Position = a_Position;
@@ -84,9 +96,15 @@ class ViewportClass {
             if(RendererAPI::GetAPI() == API::OpenGL) {
                 glViewport(Position.x, Position.y, Size.x, Size.y);
             }
+            #ifdef VENUM_DEBUG_EXTREME
+            std::cout << "Viewport set to: " << Position.x << " : " << Position.y << " ; " << Size.x << " : " << Size.y << std::endl;
+            #endif // VENUM_DEBUG_EXTREME
         }
 
         float GetAspect() {
+            #ifdef VENUM_DEBUG_EXTREME
+            std::cout << "'GetAspect()' Used! " << std::endl;
+            #endif // VENUM_DEBUG_EXTREME
             return Size.x / Size.y;
         }
 
@@ -104,18 +122,25 @@ class WindowClass {
         ~WindowClass() {
             SDL_GL_DeleteContext(m_Context);
             SDL_DestroyWindow(m_Window);
+            #ifdef Mixer
             Mix_Quit();
+            #endif // Mixer
             IMG_Quit();
             SDL_Quit();
+            #ifdef VENUM_DEBUG_EXTREME
+            std::cout << "Window Destructed! " << std::endl;
+            #endif // VENUM_DEBUG_EXTREME
         }
 
-        bool Create(const std::string& a_Title, unsigned int a_Width, unsigned int a_Height, unsigned int a_Flags) {
+        bool Create(const std::string& a_Title = "Venum Test", unsigned int a_Width = 640, unsigned int a_Height = 360, unsigned int a_Flags = 0) {
             SDL_Init(SDL_INIT_EVERYTHING);
             IMG_Init(IMG_INIT_JPG | IMG_INIT_PNG | IMG_INIT_TIF | IMG_INIT_WEBP);
+            #ifdef Mixer
             Mix_Init(MIX_INIT_FLAC | MIX_INIT_MP3 | MIX_INIT_OGG | MIX_INIT_MID | MIX_INIT_MOD | MIX_INIT_OPUS);
             if(Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0) {
                 return false;
             }
+            #endif // Mixer
 
             m_Window = SDL_CreateWindow(a_Title.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, a_Width, a_Height, (RendererAPI::GetAPI() == API::OpenGL ? SDL_WINDOW_OPENGL : SDL_WINDOW_VULKAN) | a_Flags);
 
@@ -137,7 +162,11 @@ class WindowClass {
                 return false;
             }
 
-            Viewport.Update(glm::vec2i(0, 0), glm::vec2ui(GetWidth(), GetHeight()));
+            Viewport.Update(glm::vec2(0, 0), glm::vec2(GetWidth(), GetHeight()));
+
+            #ifdef VENUM_DEBUG_EXTREME
+            std::cout << "Window Created! " << std::endl;
+            #endif // VENUM_DEBUG_EXTREME
 
             return true;
         }
@@ -146,12 +175,18 @@ class WindowClass {
             return m_Running;
         }
         void Close() {
+            #ifdef VENUM_DEBUG_EXTREME
+            std::cout << "Window Closed! " << std::endl;
+            #endif // VENUM_DEBUG_EXTREME
             m_Running = false;
         }
 
         bool PollEvent(SDL_Event* a_Event) {
             if(SDL_PollEvent(a_Event)) {
                 if(a_Event->type == SDL_QUIT) {
+                    #ifdef VENUM_DEBUG_EXTREME
+                    std::cout << "Window Closed! " << std::endl;
+                    #endif // VENUM_DEBUG_EXTREME
                     m_Running = false;
                 }
                 return true;
@@ -159,10 +194,16 @@ class WindowClass {
             else {
                 return false;
             }
+            #ifdef VENUM_DEBUG_EXTREME
+            std::cout << "Event Polled! " << std::endl;
+            #endif // VENUM_DEBUG_EXTREME
         }
 
         void SwapBuffers() {
             SDL_GL_SwapWindow(m_Window);
+            #ifdef VENUM_DEBUG_EXTREME
+            std::cout << "Window Buffer and Main Buffer Swapped! " << std::endl;
+            #endif // VENUM_DEBUG_EXTREME
         }
 
         unsigned int GetWidth() {
@@ -180,7 +221,6 @@ class WindowClass {
         SDL_Window* GetWindow() {
             return m_Window;
         }
-
 
     private:
         SDL_Window* m_Window;
@@ -230,23 +270,31 @@ KeyboardClass Keyboard;
 class MouseClass {
     public:
         MouseClass() {
-            m_Position = glm::vec2i(0, 0);
-            m_LastPosition = glm::vec2i(0, 0);
+            m_Position = glm::vec2(0, 0);
+            m_LastPosition = glm::vec2(0, 0);
             m_Visible = true;
         }
         ~MouseClass() {
 
         }
 
-        glm::vec2i GetPosition() {
+        glm::vec2 GetPosition() {
             m_LastPosition = m_Position;
-            SDL_GetMouseState(&m_Position.x, &m_Position.y);
+
+            int f_MousePosition[2];
+            SDL_GetMouseState(&f_MousePosition[0], &f_MousePosition[1]);
+
+            m_Position = glm::vec2(f_MousePosition[0], f_MousePosition[1]);
 
             return m_Position;
         }
-        glm::vec2i GetPositionRelative() {
+        glm::vec2 GetPositionRelative() {
             m_LastPosition = m_Position;
-            SDL_GetMouseState(&m_Position.x, &m_Position.y);
+
+            int f_MousePosition[2];
+            SDL_GetMouseState(&f_MousePosition[0], &f_MousePosition[1]);
+
+            m_Position = glm::vec2(f_MousePosition[0], f_MousePosition[1]);
 
             return m_Position - m_LastPosition;
         }
@@ -254,7 +302,7 @@ class MouseClass {
             return m_Visible;
         }
 
-        void SetPosition(glm::vec2i a_Position) {
+        void SetPosition(glm::vec2 a_Position) {
             SDL_WarpMouseInWindow(Window.GetWindow(), a_Position.x, a_Position.y);
         }
         void SetVisibility(bool a_Visible) {
@@ -263,8 +311,8 @@ class MouseClass {
         }
 
     private:
-        glm::vec2i m_Position;
-        glm::vec2i m_LastPosition;
+        glm::vec2 m_Position;
+        glm::vec2 m_LastPosition;
         bool m_Visible;
 };
 MouseClass Mouse;
@@ -295,12 +343,14 @@ class Timer {
         float m_DeltaTime;
 };
 
+#ifdef Mixer
 class Music {
     public:
-        Music() : m_Sample(NULL) {
-
+        Music() {
+            m_Sample = NULL;
         }
-        Music(const std::string& a_Filename) : m_Sample(NULL) {
+        Music(const std::string& a_Filename) {
+            m_Sample = NULL;
             LoadMusicFromFile(a_Filename);
         }
         ~Music() {
@@ -326,16 +376,16 @@ class Music {
             Mix_HaltMusic();
         }
 
-        bool IsPlayed() {
+        bool IsPlayed() const {
             return Mix_PlayingMusic();
         }
-        bool IsPaused() {
+        bool IsPaused() const {
             return Mix_PausedMusic();
         }
-        bool IsStopped() {
+        bool IsStopped() const {
             return !IsPlayed();
         }
-        int GetVolume() {
+        int GetVolume() const {
             return Mix_VolumeMusic(-1);
         }
 
@@ -348,10 +398,12 @@ class Music {
 };
 class Sound {
     public:
-        Sound(int a_Channel = 0) : m_Sample(NULL) {
+        Sound(int a_Channel = 0) {
+            m_Sample = NULL;
             m_Channel = a_Channel;
         }
-        Sound(const std::string& a_Filename, int a_Channel = 0) : m_Sample(NULL) {
+        Sound(const std::string& a_Filename, int a_Channel = 0) {
+            m_Sample = NULL;
             LoadSoundFromFile(a_Filename);
             m_Channel = a_Channel;
         }
@@ -378,19 +430,19 @@ class Sound {
             Mix_HaltChannel(m_Channel);
         }
 
-        bool IsPlayed() {
+        bool IsPlayed() const {
             return Mix_Playing(m_Channel);
         }
-        bool IsPaused() {
+        bool IsPaused() const {
             return Mix_Paused(m_Channel);
         }
-        bool IsStopped() {
+        bool IsStopped() const {
             return !IsPlayed();
         }
-        int GetVolume() {
+        int GetVolume() const {
             return Mix_Volume(m_Channel, -1);
         }
-        int GetChannel() {
+        int GetChannel() const {
             return m_Channel;
         }
 
@@ -405,6 +457,8 @@ class Sound {
         Mix_Chunk* m_Sample;
         int m_Channel;
 };
+#endif // Mixer
+
 
 class Transform3D {
     public:
@@ -413,25 +467,50 @@ class Transform3D {
             Rotation = a_Rotation;
             Scale = a_Scale;
         }
+        ~Transform3D() {
+
+        }
+
+        glm::mat4 GetPositionMatrix() const {
+            return glm::translate(glm::mat4(1.0f), Position);
+        }
+        glm::mat4 GetRotationMatrix() const {
+            return glm::rotate(glm::mat4(1.0f), glm::radians(Rotation.z), glm::vec3(0.0f, 0.0f, 1.0f)) *
+                    glm::rotate(glm::mat4(1.0f), glm::radians(Rotation.y), glm::vec3(0.0f, 1.0f, 0.0f)) *
+                    glm::rotate(glm::mat4(1.0f), glm::radians(Rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+        }
+        glm::mat4 GetScaleMatrix() const {
+            return glm::scale(glm::mat4(1.0f), Scale);
+        }
 
         glm::mat4 GetMatrix() const {
-            glm::mat4 f_RotationX = glm::rotate(glm::mat4(1.0f), glm::radians(Rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-            glm::mat4 f_RotationY = glm::rotate(glm::mat4(1.0f), glm::radians(Rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-            glm::mat4 f_RotationZ = glm::rotate(glm::mat4(1.0f), glm::radians(Rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
-            glm::mat4 f_Rotation = f_RotationZ * f_RotationY * f_RotationX;
-            glm::mat4 f_Position = glm::translate(glm::mat4(1.0f), Position);
-            glm::mat4 f_Scale = glm::scale(glm::mat4(1.0f), Scale);
-
-            return f_Position * f_Rotation * f_Scale;
+            return GetPositionMatrix() * GetRotationMatrix() * GetScaleMatrix();
         }
 
     public:
-        glm::vec3 Position;
-        glm::vec3 Rotation;
-        glm::vec3 Scale;
+        glm::vec3 Position, Rotation, Scale;
 };
 class Camera {
     public:
+        glm::vec3 GetForward() const {
+            return glm::normalize(Transform.GetRotationMatrix() * glm::vec4(0.0f, 0.0f, -1.0f, 1.0f));
+        }
+        glm::vec3 GetBackward() const {
+            return glm::normalize(Transform.GetRotationMatrix() * glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
+        }
+        glm::vec3 GetUpside() const {
+            return glm::normalize(Transform.GetRotationMatrix() * glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
+        }
+        glm::vec3 GetDownside() const {
+            return glm::normalize(Transform.GetRotationMatrix() * glm::vec4(0.0f, -1.0f, 0.0f, 1.0f));
+        }
+        glm::vec3 GetLeft() const {
+            return glm::normalize(Transform.GetRotationMatrix() * glm::vec4(-1.0f, 0.0f, 0.0f, 1.0f));
+        }
+        glm::vec3 GetRight() const {
+            return glm::normalize(Transform.GetRotationMatrix() * glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
+        }
+
         virtual glm::mat4 GetMatrix() const {
             return glm::mat4(1.0f);
         }
@@ -452,12 +531,7 @@ class Camera3D: public Camera {
         }
 
         glm::mat4 GetMatrix() const {
-            glm::mat4 f_Rotation = glm::rotate(glm::mat4(1.0f), glm::radians(Transform.Rotation.z), glm::vec3(0.0f, 0.0f, 1.0f)) * glm::rotate(glm::mat4(1.0f), glm::radians(Transform.Rotation.y), glm::vec3(0.0f, 1.0f, 0.0f)) * glm::rotate(glm::mat4(1.0f), glm::radians(Transform.Rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-
-            glm::vec3 f_Direction = f_Rotation * glm::vec4(0.0f, 0.0f, -1.0f, 1.0f);
-            glm::vec3 f_Upside = f_Rotation * glm::vec4(0.0f, 1.0f, 0.0f, 1.0f);
-
-            return glm::perspective(glm::radians(FOV), Viewport.GetAspect(), Near, Far) * glm::lookAt(Transform.Position, Transform.Position + f_Direction, f_Upside);
+            return glm::perspective(glm::radians(FOV), Viewport.GetAspect(), Near, Far) * glm::lookAt(Transform.Position, Transform.Position + GetForward(), GetUpside());
         }
 
     public:
@@ -478,12 +552,7 @@ class Camera2D: public Camera {
         }
 
         glm::mat4 GetMatrix() const {
-            glm::mat4 f_Rotation = glm::rotate(glm::mat4(1.0f), glm::radians(Transform.Rotation.z), glm::vec3(0.0f, 0.0f, 1.0f)) * glm::rotate(glm::mat4(1.0f), glm::radians(Transform.Rotation.y), glm::vec3(0.0f, 1.0f, 0.0f)) * glm::rotate(glm::mat4(1.0f), glm::radians(Transform.Rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-
-            glm::vec3 f_Direction = f_Rotation * glm::vec4(0.0f, 0.0f, -1.0f, 1.0f);
-            glm::vec3 f_Upside = f_Rotation * glm::vec4(0.0f, 1.0f, 0.0f, 1.0f);
-
-            return glm::ortho(LeftDown.x, RightTop.x, LeftDown.y, RightTop.y, Near, Far) * glm::lookAt(Transform.Position, Transform.Position + f_Direction, f_Upside);
+            return glm::ortho(LeftDown.x, RightTop.x, LeftDown.y, RightTop.y, Near, Far) * glm::lookAt(Transform.Position, Transform.Position + GetForward(), GetUpside());
         }
 
     public:
@@ -492,7 +561,22 @@ class Camera2D: public Camera {
         float Near, Far;
 };
 
-class Vertex {
+class Vertex3D {
+    public:
+        Vertex3D(glm::vec3 a_Position, glm::vec2 a_TexCoord, glm::vec3 a_Normal) {
+            Position = a_Position;
+            TexCoord = a_TexCoord;
+            Normal = a_Normal;
+        }
+        Vertex3D(float a_PositionX, float a_PositionY, float a_PositionZ, float a_TexCoordX, float a_TexCoordY, float a_NormalX, float a_NormalY, float a_NormalZ) {
+            Position = glm::vec3(a_PositionX, a_PositionY, a_PositionZ);
+            TexCoord = glm::vec2(a_TexCoordX, a_TexCoordY);
+            Normal = glm::vec3(a_NormalX, a_NormalY, a_NormalZ);
+        }
+        ~Vertex3D() {
+
+        }
+
     public:
         glm::vec3 Position;
         glm::vec2 TexCoord;
@@ -500,17 +584,17 @@ class Vertex {
 };
 class VertexBuffer {
     public:
-        static VertexBuffer Create();
-        static VertexBuffer Create(const std::vector<Vertex>& a_Data);
-        static VertexBuffer Create(Vertex* a_Data, unsigned int a_Count);
+        static VertexBuffer* Create();
+        static VertexBuffer* Create(const std::vector<Vertex3D>& a_Data);
+        static VertexBuffer* Create(Vertex3D* a_Data, unsigned int a_Count);
         virtual ~VertexBuffer() {
 
         }
 
-        virtual void BufferData(const std::vector<Vertex>& a_Data) {
+        virtual void BufferData(const std::vector<Vertex3D>& a_Data) {
 
         }
-        virtual void BufferData(Vertex* a_Data, unsigned int a_Count) {
+        virtual void BufferData(Vertex3D* a_Data, unsigned int a_Count) {
 
         }
 
@@ -531,114 +615,233 @@ class OpenGLVertexBuffer: public VertexBuffer {
             glCreateBuffers(1, &m_VBRendererID);
             glBindBuffer(GL_ARRAY_BUFFER, m_VBRendererID);
 
-            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), reinterpret_cast<void*>(offsetof(Vertex, Position)));
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), reinterpret_cast<void*>(0));
             glEnableVertexAttribArray(0);
-
-            glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), reinterpret_cast<void*>(offsetof(Vertex, TexCoord)));
-            glEnableVertexAttribArray(1);
-
-            glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), reinterpret_cast<void*>(offsetof(Vertex, Normal)));
+            glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), reinterpret_cast<void*>(sizeof(glm::vec3)));
             glEnableVertexAttribArray(2);
+            glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), reinterpret_cast<void*>(sizeof(glm::vec3) + sizeof(glm::vec2)));
+            glEnableVertexAttribArray(3);
 
             m_Count = 0;
+
+            #ifdef VENUM_DEBUG_EXTREME
+            std::cout << "OpenGL VertexBuffer: " << m_VBRendererID << " : " << m_VARendererID << " Constructed! " << std::endl;
+            #endif // VENUM_DEBUG_EXTREME
         }
-        OpenGLVertexBuffer(const std::vector<Vertex>& a_Data) {
+        OpenGLVertexBuffer(const std::vector<Vertex3D>& a_Data) {
             glCreateVertexArrays(1, &m_VARendererID);
             glBindVertexArray(m_VARendererID);
 
             glCreateBuffers(1, &m_VBRendererID);
             glBindBuffer(GL_ARRAY_BUFFER, m_VBRendererID);
 
-            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), reinterpret_cast<void*>(offsetof(Vertex, Position)));
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), reinterpret_cast<void*>(0));
             glEnableVertexAttribArray(0);
-
-            glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), reinterpret_cast<void*>(offsetof(Vertex, TexCoord)));
-            glEnableVertexAttribArray(1);
-
-            glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), reinterpret_cast<void*>(offsetof(Vertex, Normal)));
+            glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), reinterpret_cast<void*>(sizeof(glm::vec3)));
             glEnableVertexAttribArray(2);
+            glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), reinterpret_cast<void*>(sizeof(glm::vec3) + sizeof(glm::vec2)));
+            glEnableVertexAttribArray(3);
 
             BufferData(a_Data);
+
+            #ifdef VENUM_DEBUG_EXTREME
+            std::cout << "OpenGL VertexBuffer: " << m_VBRendererID << " : " << m_VARendererID << " Constructed! " << std::endl;
+            #endif // VENUM_DEBUG_EXTREME
         }
-        OpenGLVertexBuffer(Vertex* a_Data, unsigned int a_Count) {
+        OpenGLVertexBuffer(Vertex3D* a_Data, unsigned int a_Count) {
             glCreateVertexArrays(1, &m_VARendererID);
             glBindVertexArray(m_VARendererID);
 
             glCreateBuffers(1, &m_VBRendererID);
             glBindBuffer(GL_ARRAY_BUFFER, m_VBRendererID);
 
-            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), reinterpret_cast<void*>(offsetof(Vertex, Position)));
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), reinterpret_cast<void*>(0));
             glEnableVertexAttribArray(0);
-
-            glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), reinterpret_cast<void*>(offsetof(Vertex, TexCoord)));
-            glEnableVertexAttribArray(1);
-
-            glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), reinterpret_cast<void*>(offsetof(Vertex, Normal)));
+            glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), reinterpret_cast<void*>(sizeof(glm::vec3)));
             glEnableVertexAttribArray(2);
+            glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), reinterpret_cast<void*>(sizeof(glm::vec3) + sizeof(glm::vec2)));
+            glEnableVertexAttribArray(3);
 
             BufferData(a_Data, a_Count);
+
+            #ifdef VENUM_DEBUG_EXTREME
+            std::cout << "OpenGL VertexBuffer: " << m_VBRendererID << " : " << m_VARendererID << " Constructed! " << std::endl;
+            #endif // VENUM_DEBUG_EXTREME
         }
         ~OpenGLVertexBuffer() {
             glDeleteBuffers(1, &m_VBRendererID);
             glDeleteVertexArrays(1, &m_VARendererID);
+
+            #ifdef VENUM_DEBUG_EXTREME
+            std::cout << "OpenGL VertexBuffer: " << m_VBRendererID << " : " << m_VARendererID << " Destructed! " << std::endl;
+            #endif // VENUM_DEBUG_EXTREME
         }
 
-        void BufferData(const std::vector<Vertex>& a_Data) {
+        void BufferData(const std::vector<Vertex3D>& a_Data) {
             Bind();
             m_Count = a_Data.size();
-            glBufferData(GL_ARRAY_BUFFER, a_Data.size() * sizeof(Vertex), &a_Data[0], GL_STATIC_DRAW);
+            glBufferData(GL_ARRAY_BUFFER, a_Data.size() * sizeof(Vertex3D), &a_Data[0], GL_STATIC_DRAW);
+
+            #ifdef VENUM_DEBUG_EXTREME
+            std::cout << "OpenGL VertexBuffer: " << m_VBRendererID << " : " << m_VARendererID << " Send Data! " << std::endl;
+            #endif // VENUM_DEBUG_EXTREME
         }
-        void BufferData(Vertex* a_Data, unsigned int a_Count) {
+        void BufferData(Vertex3D* a_Data, unsigned int a_Count) {
             Bind();
             m_Count = a_Count;
-            glBufferData(GL_ARRAY_BUFFER, a_Count * sizeof(Vertex), a_Data, GL_STATIC_DRAW);
+            glBufferData(GL_ARRAY_BUFFER, a_Count * sizeof(Vertex3D), a_Data, GL_STATIC_DRAW);
+
+            #ifdef VENUM_DEBUG_EXTREME
+            std::cout << "OpenGL VertexBuffer: " << m_VBRendererID << " : " << m_VARendererID << " Send Data! " << std::endl;
+            #endif // VENUM_DEBUG_EXTREME
         }
 
         void Bind() const {
             glBindVertexArray(m_VARendererID);
             glBindBuffer(GL_ARRAY_BUFFER, m_VBRendererID);
-        }
 
-        unsigned int GetVertexArrayRendererID() const {
-            return m_VARendererID;
-        }
-        unsigned int GetVertexBufferRendererID() const {
-            return m_VBRendererID;
+            #ifdef VENUM_DEBUG_EXTREME
+            std::cout << "OpenGL VertexBuffer: " << m_VBRendererID << " : " << m_VARendererID << " Bound! " << std::endl;
+            #endif // VENUM_DEBUG_EXTREME
         }
         unsigned int GetCount() const {
+            #ifdef VENUM_DEBUG_EXTREME
+            std::cout << "OpenGL VertexBuffer: " << m_VBRendererID << " : " << m_VARendererID << " Count Given! " << std::endl;
+            #endif // VENUM_DEBUG_EXTREME
+
             return m_Count;
+        }
+
+        unsigned int GetVertexBufferRendererID() const {
+            #ifdef VENUM_DEBUG_EXTREME
+            std::cout << "OpenGL VertexBuffer: " << m_VBRendererID << " : " << m_VARendererID << " VertexBuffer RendererID Given! " << std::endl;
+            #endif // VENUM_DEBUG_EXTREME
+
+            return m_VBRendererID;
+        }
+        unsigned int GetVertexArrayRendererID() const {
+            #ifdef VENUM_DEBUG_EXTREME
+            std::cout << "OpenGL VertexBuffer: " << m_VBRendererID << " : " << m_VARendererID << " VertexArray RendererID Given! " << std::endl;
+            #endif // VENUM_DEBUG_EXTREME
+
+            return m_VARendererID;
         }
 
     private:
         unsigned int m_VBRendererID;
-        unsigned int m_VARendererID;
         unsigned int m_Count;
+        unsigned int m_VARendererID;
 };
-VertexBuffer VertexBuffer::Create() {
+VertexBuffer* VertexBuffer::Create() {
     if(RendererAPI::GetAPI() == API::OpenGL) {
-        return OpenGLVertexBuffer();
+        return new OpenGLVertexBuffer();
     }
 }
-VertexBuffer VertexBuffer::Create(const std::vector<Vertex>& a_Data) {
+VertexBuffer* VertexBuffer::Create(const std::vector<Vertex3D>& a_Data) {
     if(RendererAPI::GetAPI() == API::OpenGL) {
-        return OpenGLVertexBuffer(a_Data);
+        return new OpenGLVertexBuffer(a_Data);
     }
 }
-VertexBuffer VertexBuffer::Create(Vertex* a_Data, unsigned int a_Count) {
+VertexBuffer* VertexBuffer::Create(Vertex3D* a_Data, unsigned int a_Count) {
     if(RendererAPI::GetAPI() == API::OpenGL) {
-        return OpenGLVertexBuffer(a_Data, a_Count);
+        return new OpenGLVertexBuffer(a_Data, a_Count);
     }
 }
 
+class ShaderElement {
+    public:
+        static ShaderElement* Create();
+        static ShaderElement* Create(unsigned int a_Type, const std::string& a_Source);
+        virtual ~ShaderElement() {
+
+        }
+
+        virtual void Compile(unsigned int a_Type, const std::string& a_Source) {
+
+        }
+
+};
+class OpenGLShaderElement: public ShaderElement {
+    public:
+        OpenGLShaderElement() {
+            m_Created = false;
+        }
+        OpenGLShaderElement(unsigned int a_Type, const std::string& a_Source) {
+            Compile(a_Type, a_Source);
+        }
+        ~OpenGLShaderElement() {
+            if(m_Created) {
+                glDeleteShader(m_RendererID);
+
+            #ifdef VENUM_DEBUG_EXTREME
+            std::cout << "OpenGL ShaderElement: " << m_RendererID << " Destructed! " << std::endl;
+            #endif // VENUM_DEBUG_EXTREME
+            }
+        }
+
+        void Compile(unsigned int a_Type, const std::string& a_Source) {
+            m_Created = true;
+            m_RendererID = glCreateShader(a_Type);
+
+            const char* f_Source = a_Source.c_str();
+            glShaderSource(m_RendererID, 1, &f_Source, nullptr);
+
+            glCompileShader(m_RendererID);
+
+            int f_Compiled;
+            glGetShaderiv(m_RendererID, GL_COMPILE_STATUS, &f_Compiled);
+            if(f_Compiled == GL_FALSE) {
+                int f_Length;
+                glGetShaderiv(m_RendererID, GL_INFO_LOG_LENGTH, &f_Length);
+
+                char* f_Message = new char[f_Length];
+                glGetShaderInfoLog(m_RendererID, f_Length, &f_Length, f_Message);
+
+                std::cerr << "[SHADER COMPILATION ERROR]" << f_Message << std::endl;
+
+                delete[] f_Message;
+            }
+
+            #ifdef VENUM_DEBUG_EXTREME
+            std::cout << "OpenGL ShaderElement: " << m_RendererID << " Constructed! " << std::endl;
+            #endif // VENUM_DEBUG_EXTREME
+        }
+
+        unsigned int GetRendererID() const {
+            #ifdef VENUM_DEBUG_EXTREME
+            std::cout << "OpenGL ShaderElement: " << m_RendererID << " Renderer ID Given! " << std::endl;
+            #endif // VENUM_DEBUG_EXTREME
+
+            return m_RendererID;
+        }
+
+    private:
+        unsigned int m_RendererID;
+        bool m_Created;
+};
+ShaderElement* ShaderElement::Create() {
+    if(RendererAPI::GetAPI() == API::OpenGL) {
+        return new OpenGLShaderElement();
+    }
+}
+ShaderElement* ShaderElement::Create(unsigned int a_Type, const std::string& a_Source) {
+    if(RendererAPI::GetAPI() == API::OpenGL) {
+        return new OpenGLShaderElement(a_Type, a_Source);
+    }
+}
 class Shader {
     public:
-        static Shader Create();
-        static Shader Create(const std::string& a_Code);
+        static Shader* Create();
+        static Shader* Create(const ShaderElement* a_VertexShader, const ShaderElement* a_FragmentShader, bool a_Compile = true);
         virtual ~Shader() {
 
         }
 
-        virtual void Compile(const std::string& a_Code) {
+        virtual void AttachShaderElement(const ShaderElement* a_ShaderElement) {
+
+        }
+
+        virtual void Compile() {
 
         }
 
@@ -650,61 +853,54 @@ class OpenGLShader: public Shader {
     public:
         OpenGLShader() {
             m_RendererID = glCreateProgram();
-            Bind();
-        }
-        OpenGLShader(const std::string& a_Code) {
-            m_RendererID = glCreateProgram();
-            Bind();
 
-            Compile(a_Code);
+            #ifdef VENUM_DEBUG_EXTREME
+            std::cout << "OpenGL Shader: " << m_RendererID << " Constructed! " << std::endl;
+            #endif // VENUM_DEBUG_EXTREME
+        }
+        OpenGLShader(const ShaderElement* a_VertexShader, const ShaderElement* a_FragmentShader, bool a_Compile) {
+            m_RendererID = glCreateProgram();
+
+            #ifdef VENUM_DEBUG_EXTREME
+            std::cout << "OpenGL Shader: " << m_RendererID << " Constructed! " << std::endl;
+            #endif // VENUM_DEBUG_EXTREME
+
+            AttachShaderElement(a_VertexShader);
+            AttachShaderElement(a_FragmentShader);
+
+            if(a_Compile) {
+                Compile();
+            }
         }
         ~OpenGLShader() {
             glDeleteProgram(m_RendererID);
         }
 
-        void Compile(const std::string& a_Code) {
-            std::strstream f_Code;
-            f_Code << a_Code;
+        void AttachShaderElement(const ShaderElement* a_ShaderElement) {
+            glAttachShader(m_RendererID, dynamic_cast<const OpenGLShaderElement*>(a_ShaderElement)->GetRendererID());
 
-            std::string f_ShaderCode[2];
+            #ifdef VENUM_DEBUG_EXTREME
+            std::cout << "OpenGL Shader: " << m_RendererID << " ShaderElement Attached: " << dynamic_cast<const OpenGLShaderElement*>(a_ShaderElement)->GetRendererID() << " !" << std::endl;
+            #endif // VENUM_DEBUG_EXTREME
+        }
 
-            std::string f_Line;
-            unsigned int f_Parsed = 0;
-            while(std::getline(f_Code, f_Line)) {
-                if(f_Line == "#Shader Vertex") {
-                    f_Parsed = 1;
-                }
-                else if(f_Line == "#Shader Fragment") {
-                    f_Parsed = 2;
-                }
-                else {
-                    if(f_Parsed == 1) {
-                        f_ShaderCode[0] += f_Line;
-                        f_ShaderCode[0] += '\n';
-                    }
-                    else if(f_Parsed == 2) {
-                        f_ShaderCode[1] += f_Line;
-                        f_ShaderCode[1] += '\n';
-                    }
-                }
-            }
-
-            unsigned int f_ShaderID[2];
-
-            f_ShaderID[0] = CompileShader(GL_VERTEX_SHADER, f_ShaderCode[0]);
-            f_ShaderID[1] = CompileShader(GL_VERTEX_SHADER, f_ShaderCode[1]);
-
-            glAttachShader(m_RendererID, f_ShaderID[0]);
-            glAttachShader(m_RendererID, f_ShaderID[1]);
+        void Compile() {
             glLinkProgram(m_RendererID);
             glValidateProgram(m_RendererID);
 
-            glDeleteShader(f_ShaderID[0]);
-            glDeleteShader(f_ShaderID[1]);
+            #ifdef VENUM_DEBUG_EXTREME
+            std::cout << "OpenGL Shader: " << m_RendererID << " Compiled! " << std::endl;
+            #endif // VENUM_DEBUG_EXTREME
+
+            Bind();
         }
 
         void Bind() const {
             glUseProgram(m_RendererID);
+
+            #ifdef VENUM_DEBUG_EXTREME
+            std::cout << "OpenGL Shader: " << m_RendererID << " Bound! " << std::endl;
+            #endif // VENUM_DEBUG_EXTREME
         }
 
         unsigned int GetRendererID() const {
@@ -749,84 +945,78 @@ class OpenGLShader: public Shader {
         }
 
     private:
-        unsigned int CompileShader(unsigned int a_Type, const std::string& a_Code) {
-            unsigned int f_RendererID = glCreateShader(a_Type);
-
-            const char* f_Source = a_Code.c_str();
-            glShaderSource(f_RendererID, 1, &f_Source, nullptr);
-
-            glCompileShader(f_RendererID);
-
-            int f_Compiled;
-            glGetShaderiv(f_RendererID, GL_COMPILE_STATUS, &f_Compiled);
-            if(f_Compiled == GL_FALSE) {
-                int f_Length;
-                glGetShaderiv(f_RendererID, GL_INFO_LOG_LENGTH, &f_Length);
-
-                char* f_Message = new char[f_Length];
-                glGetShaderInfoLog(f_RendererID, f_Length, &f_Length, f_Message);
-
-                std::cerr << "[SHADER COMPILATION ERROR]" << f_Message << std::endl;
-
-                delete[] f_Message;
-
-                return 0;
-            }
-
-            return f_RendererID;
-        }
-
-    private:
         unsigned int m_RendererID;
 };
-Shader Shader::Create() {
+Shader* Shader::Create() {
     if(RendererAPI::GetAPI() == API::OpenGL) {
-        return OpenGLShader();
+        return new OpenGLShader();
     }
 }
-Shader Shader::Create(const std::string& a_Code) {
+Shader* Shader::Create(const ShaderElement* a_VertexShader, const ShaderElement* a_FragmentShader, bool a_Compile) {
     if(RendererAPI::GetAPI() == API::OpenGL) {
-        return OpenGLShader(a_Code);
+        return new OpenGLShader(a_VertexShader, a_FragmentShader, a_Compile);
     }
 }
 
-enum TextureSettings {
-    InterpolationLinear = 1,
-    InterpolationNearest = 2,
-    WrapRepeat = 4,
-    WrapClamp = 8,
+class TextureSettings {
+    public:
+        TextureSettings(unsigned int a_Interpolation = GL_LINEAR, unsigned int a_Wrapping = GL_CLAMP_TO_EDGE) {
+            Interpolation = a_Interpolation;
+            Wrapping = a_Wrapping;
+        }
+        ~TextureSettings() {
+
+        }
+
+    public:
+        unsigned int Interpolation;
+        unsigned int Wrapping;
 };
 class Texture2D {
     public:
-        Texture2D() {
+        static Texture2D* Create();
+        static Texture2D* Create(const std::string& a_Filename, const TextureSettings& a_Settings = TextureSettings());
+        virtual ~Texture2D() {
+
+        }
+
+        virtual void BufferData(const std::string& a_Filename, const TextureSettings& a_Settings = TextureSettings()) {
+
+        }
+
+        virtual void Bind(unsigned int index = 0) const {
+
+        }
+
+};
+class OpenGLTexture2D: public Texture2D {
+    public:
+        OpenGLTexture2D() {
             glGenTextures(1, &m_RendererID);
             glBindTexture(GL_TEXTURE_2D, m_RendererID);
         }
-        Texture2D(const std::string& a_Filename, unsigned char a_Settings = TextureSettings::InterpolationLinear | TextureSettings::WrapRepeat) {
+        OpenGLTexture2D(const std::string& a_Filename, const TextureSettings& a_Settings) {
             glGenTextures(1, &m_RendererID);
             glBindTexture(GL_TEXTURE_2D, m_RendererID);
-            BufferData(Settings, Filename);
+            BufferData(a_Filename, a_Settings);
         }
-        ~Texture2D() {
+        ~OpenGLTexture2D() {
             glDeleteTextures(1, &m_RendererID);
         }
 
-        void BufferData(const std::string& a_Filename, unsigned char a_Settings = TextureSettings::InterpolationLinear | TextureSettings::WrapRepeat) {
-            SDL_Surface*  m_Surface = IMG_Load(Filename.c_str());
+        void BufferData(const std::string& a_Filename, const TextureSettings& a_Settings) {
+            SDL_Surface* f_Surface = IMG_Load(a_Filename.c_str());
 
             glBindTexture(GL_TEXTURE_2D, m_RendererID);
 
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, Settings.MinMagFilter);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, Settings.MinMagFilter);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, Settings.WrapSTR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, Settings.WrapSTR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, a_Settings.Interpolation);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, a_Settings.Interpolation);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, a_Settings.Wrapping);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, a_Settings.Wrapping);
 
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, m_Surface->w, m_Surface->h, 0, (m_Surface->format->BytesPerPixel == 4 ? GL_RGBA : GL_RGB), GL_UNSIGNED_BYTE, m_Surface->pixels);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, f_Surface->w, f_Surface->h, 0, (f_Surface->format->BytesPerPixel == 4 ? GL_RGBA : GL_RGB), GL_UNSIGNED_BYTE, f_Surface->pixels);
 
-            if(m_Surface != NULL) {
-                SDL_FreeSurface(m_Surface);
-            }
-
+            SDL_FreeSurface(f_Surface);
         }
 
         void Bind(unsigned int index = 0) const {
@@ -841,619 +1031,135 @@ class Texture2D {
 
     private:
         unsigned int m_RendererID;
-        SDL_Surface* m_Surface;
 };
-class TextureCubeMap {
-    public:
-        OpenGLTextureCubeMap() {
-            glGenTextures(1, &m_RendererID);
-            glBindTexture(GL_TEXTURE_CUBE_MAP, m_RendererID);
-        }
-        OpenGLTextureCubeMap(const OpenGLTextureSettings& Settings, std::string Filename[6]) {
-            glGenTextures(1, &m_RendererID);
-            glBindTexture(GL_TEXTURE_CUBE_MAP, m_RendererID);
-            BufferData(Settings, Filename);
-        }
-        ~OpenGLTextureCubeMap() {
-            glDeleteTextures(1, &m_RendererID);
-        }
-
-        void BufferData(const OpenGLTextureSettings& Settings, std::string Filename[6]) {
-            glBindTexture(GL_TEXTURE_CUBE_MAP, m_RendererID);
-
-            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, Settings.MinMagFilter);
-            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, Settings.MinMagFilter);
-            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, Settings.WrapSTR);
-            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, Settings.WrapSTR);
-            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, Settings.WrapSTR);
-
-            for(unsigned int i = 0; i < 6; i++) {
-                SDL_Surface* m_Surface = IMG_Load(Filename[i].c_str());
-                glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA8, m_Surface->w, m_Surface->h, 0, (m_Surface->format->BytesPerPixel == 4 ? GL_RGBA : GL_RGB), GL_UNSIGNED_BYTE, m_Surface->pixels);
-                if(m_Surface != NULL) {
-                    SDL_FreeSurface(m_Surface);
-                }
-            }
-
-
-        }
-
-        void Bind(unsigned int index = 0) const {
-            assert(index < 31);
-            glActiveTexture(GL_TEXTURE0 + index);
-            glBindTexture(GL_TEXTURE_CUBE_MAP, m_RendererID);
-        }
-
-        unsigned int GetRendererID() const {
-            return m_RendererID;
-        }
-
-    private:
-        unsigned int m_RendererID;
-};
-
-class Mesh {
-    public:
-        Mesh() {
-            m_VBO.reset(VertexBuffer::Create());
-        }
-        Mesh(const std::string a_Filename, bool a_DoBufferData = true) {
-            m_VBO.reset(VertexBuffer::Create());
-            LoadMeshFromFileOBJ(a_Filename, a_DoBufferData);
-        }
-        ~Mesh() {
-
-        }
-
-        void BufferData() {
-            m_VBO->Bind();
-            m_VBO->BufferData(m_VBOData);
-            m_VBOData.clear();
-        }
-
-        bool LoadMeshFromFileOBJ(const std::string a_Filename, bool a_DoBufferData = true) {
-            std::fstream filestream;
-
-            filestream.open(a_Filename);
-
-            std::vector<glm::vec3> arrayPosition;
-            std::vector<glm::vec2> arrayTexCoord;
-            std::vector<glm::vec3> arrayNormal;
-
-            if( filestream.good(  ) ) {
-
-                m_VBOData.clear(  );
-
-                while( !filestream.eof(  ) ) {
-                    std::strstream linestream;
-
-                    std::string line;
-                    std::getline( filestream, line );
-
-                    for( char& i : line ) {
-                        if( i == '/' ) {
-                            i = ' ';
-                        }
-                    }
-
-                    linestream << line;
-
-                    if( line.c_str()[0] == 'v' && line.c_str()[1] == ' ' ) {
-                        glm::vec3 data;
-                        std::string junk;
-                        linestream >> junk >> data.x >> data.y >> data.z;
-                        arrayPosition.push_back( data );
-                    }
-                    else if( line.c_str()[0] == 'v' && line.c_str()[1] == 't' ) {
-                        glm::vec2 data;
-                        std::string junk;
-                        linestream >> junk >> data.x >> data.y;
-                        arrayTexCoord.push_back( data );
-                    }
-                    else if( line.c_str()[0] == 'v' && line.c_str()[1] == 'n' ) {
-                        glm::vec3 data;
-                        std::string junk;
-                        linestream >> junk >> data.x >> data.y >> data.z;
-                        arrayNormal.push_back( data );
-                    }
-                    else if(line.c_str()[0] == 'f' && line.c_str()[1] == ' ') {
-                        std::string junk;
-                        unsigned int indexPosition1, indexTexCoord1, indexNormal1,
-                                    indexPosition2, indexTexCoord2, indexNormal2,
-                                    indexPosition3, indexTexCoord3, indexNormal3;
-                        linestream >> junk >> indexPosition1 >> indexTexCoord1 >> indexNormal1
-                                >> indexPosition2 >> indexTexCoord2 >> indexNormal2
-                                >> indexPosition3 >> indexTexCoord3 >> indexNormal3;
-
-                        m_VBOData.push_back({arrayPosition[indexPosition1 - 1], arrayTexCoord[indexTexCoord1 - 1], arrayNormal[indexNormal1 - 1]});
-                        m_VBOData.push_back({arrayPosition[indexPosition2 - 1], arrayTexCoord[indexTexCoord2 - 1], arrayNormal[indexNormal2 - 1]});
-                        m_VBOData.push_back({arrayPosition[indexPosition3 - 1], arrayTexCoord[indexTexCoord3 - 1], arrayNormal[indexNormal3 - 1]});
-                    }
-                }
-            }
-            else
-            {
-                std::cerr << "Cannot load an obj file : " << a_Filename << '\n';
-                return false;
-            }
-
-            if(a_DoBufferData) {
-                BufferData();
-            }
-
-            return true;
-        }
-
-        const VertexBuffer& GetVertexBuffer() const {
-            return *m_VBO;
-        }
-        const std::vector<Vertex>& GetVertexBufferData() const {
-            return m_VBOData;
-        }
-
-        VertexBuffer& GetVertexBufferRef() {
-            return *m_VBO;
-        }
-        std::vector<Vertex>& GetVertexBufferDataRef() {
-            return m_VBOData;
-        }
-
-    private:
-        std::unique_ptr<VertexBuffer> m_VBO;
-        std::vector<Vertex> m_VBOData;
-};
-class OpenGLSimpleMaterial {
-    public:
-        OpenGLSimpleMaterial(Camera* CameraPtr = nullptr, Transform3D* TransformPtr = nullptr, Light2DManager* LightManagerPtr = nullptr, bool IsItTransparent = false, bool IsItDepthTested = true, bool IsItKeyColored = false, bool IsItLighted = false) {
-            m_Shader.AttachShader(OpenGLShader(GL_VERTEX_SHADER, LoadStringFromFile("./res/sh/SimpleMaterial.vs")));
-            m_Shader.AttachShader(OpenGLShader(GL_FRAGMENT_SHADER, LoadStringFromFile("./res/sh/SimpleMaterial.fs")));
-            m_Shader.Compile();
-            m_Transparent = IsItTransparent;
-            m_DepthTested = IsItDepthTested;
-            m_KeyColored = IsItKeyColored;
-            m_Camera = CameraPtr;
-            m_Transform = TransformPtr;
-
-            SpriteSize = glm::vec2(1.0f);
-            ChosenSprite = glm::vec2(0.0f);
-            KeyColor = glm::vec4(1.0f);
-            AmbientColor = glm::vec4(1.0f);
-        }
-        ~OpenGLSimpleMaterial() {
-
-        }
-
-        void Update() const {
-            if(m_Camera != nullptr) {
-                m_Shader.SetUniform("u_ProjectionView", m_Camera->GetMatrix());
-            }
-            else {
-                m_Shader.SetUniform("u_ProjectionView", glm::mat4(1.0f));
-            }
-            if(m_Transform != nullptr) {
-                m_Shader.SetUniform("u_Model", m_Transform->GetMatrix());
-            }
-            else  {
-                m_Shader.SetUniform("u_Model", glm::mat4(1.0f));
-            }
-            m_Shader.SetUniform("u_IsAlpha", m_Transparent);
-            m_Shader.SetUniform("u_KeyColored", m_KeyColored);
-
-            m_Shader.SetUniform("u_AlbedoTextureID", Textures::ALBEDO);
-
-            m_Shader.SetUniform("u_SpriteSize", SpriteSize);
-            m_Shader.SetUniform("u_SpriteToShow", ChosenSprite);
-
-            m_Shader.SetUniform("u_KeyColor", KeyColor);
-            m_Shader.SetUniform("u_AmbientColor", AmbientColor);
-
-        }
-
-        const OpenGLShaderProgram& GetShader() const {
-            return m_Shader;
-        }
-        bool IsTransparent() const {
-            return m_Transparent;
-        }
-        bool IsDepthTested() const {
-            return m_DepthTested;
-        }
-        bool IsKeyColored() const {
-            return m_KeyColored;
-        }
-
-        OpenGLShaderProgram& GetShaderRef() {
-            return m_Shader;
-        }
-
-        void SetTransparent(bool Transparent) {
-            m_Transparent = Transparent;
-        }
-        void SetDepthTested(bool DepthTested) {
-            m_DepthTested = DepthTested;
-        }
-        void SetKeyColored(bool KeyColored) {
-            m_KeyColored = KeyColored;
-        }
-        void SetCameraPtr(Camera& CameraPtr) {
-            m_Camera = &CameraPtr;
-        }
-        void SetTransformPtr(Transform3D& TransformPtr) {
-            m_Transform = &TransformPtr;
-        }
-
-    private:
-        Shader* m_Shader;
-        bool m_Transparent;
-        bool m_DepthTested;
-        bool m_KeyColored;
-
-        Camera* m_Camera;
-        Transform3D* m_Transform;
-
-
-    public:
-        enum Textures {
-            ALBEDO = 0,
-        };
-
-        glm::vec2 SpriteSize;
-        glm::vec2 ChosenSprite;
-
-        glm::vec4 KeyColor;
-        glm::vec4 AmbientColor;
-};
-class OpenGLModel {
-    public:
-        OpenGLModel() {
-
-        }
-        OpenGLModel(const std::string& Filename, bool DoBufferData = false) {
-            LoadModelFromFileOBJ(Filename, DoBufferData);
-        }
-        ~OpenGLModel() {
-
-        }
-
-        void LoadModelFromFileOBJ(const std::string& Filename, bool DoBufferData = false) {
-            m_Mesh.LoadMeshFromFileOBJ(Filename);
-            if(DoBufferData) {
-                BufferData();
-            }
-        }
-
-        void BufferData() {
-            m_Mesh.BufferData();
-        }
-        void Update() const {
-            m_Material.Update();
-        }
-
-        const OpenGLMesh& GetMesh() const {
-            return m_Mesh;
-        }
-        const OpenGLSimpleMaterial& GetMaterial() const {
-            return m_Material;
-        }
-
-        OpenGLMesh& GetMeshRef() {
-            return m_Mesh;
-        }
-        OpenGLSimpleMaterial& GetMaterialRef() {
-            return m_Material;
-        }
-
-    private:
-        OpenGLMesh m_Mesh;
-        OpenGLSimpleMaterial m_Material;
-};
-
-class OpenGLSkybox {
-    public:
-        OpenGLSkybox(Camera* CameraPtr = nullptr) {
-            Vertex VBOData[] = {
-                {glm::vec3(-1.0f,  1.0f, -1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-                {glm::vec3(-1.0f, -1.0f, -1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-                {glm::vec3( 1.0f, -1.0f, -1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-                {glm::vec3( 1.0f, -1.0f, -1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-                {glm::vec3( 1.0f,  1.0f, -1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-                {glm::vec3(-1.0f,  1.0f, -1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-
-                {glm::vec3(-1.0f, -1.0f,  1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-                {glm::vec3(-1.0f, -1.0f, -1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-                {glm::vec3(-1.0f,  1.0f, -1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-                {glm::vec3(-1.0f,  1.0f, -1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-                {glm::vec3(-1.0f,  1.0f,  1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-                {glm::vec3(-1.0f, -1.0f,  1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-
-                {glm::vec3( 1.0f, -1.0f, -1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-                {glm::vec3( 1.0f, -1.0f,  1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-                {glm::vec3( 1.0f,  1.0f,  1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-                {glm::vec3( 1.0f,  1.0f,  1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-                {glm::vec3( 1.0f,  1.0f, -1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-                {glm::vec3( 1.0f, -1.0f, -1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-
-                {glm::vec3(-1.0f, -1.0f,  1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-                {glm::vec3(-1.0f,  1.0f,  1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-                {glm::vec3( 1.0f,  1.0f,  1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-                {glm::vec3( 1.0f,  1.0f,  1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-                {glm::vec3( 1.0f, -1.0f,  1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-                {glm::vec3(-1.0f, -1.0f,  1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-
-                {glm::vec3(-1.0f,  1.0f, -1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-                {glm::vec3( 1.0f,  1.0f, -1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-                {glm::vec3( 1.0f,  1.0f,  1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-                {glm::vec3( 1.0f,  1.0f,  1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-                {glm::vec3(-1.0f,  1.0f,  1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-                {glm::vec3(-1.0f,  1.0f, -1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-
-                {glm::vec3(-1.0f, -1.0f, -1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-                {glm::vec3(-1.0f, -1.0f,  1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-                {glm::vec3( 1.0f, -1.0f, -1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-                {glm::vec3( 1.0f, -1.0f, -1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-                {glm::vec3(-1.0f, -1.0f,  1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-                {glm::vec3( 1.0f, -1.0f,  1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)}
-            };
-
-            m_VAO.BufferData(m_VBO, {0, 3, GL_FLOAT, sizeof(Vertex), offsetof(Vertex, Position)});
-            m_VAO.BufferData(m_VBO, {1, 2, GL_FLOAT, sizeof(Vertex), offsetof(Vertex, TexCoord)});
-            m_VAO.BufferData(m_VBO, {2, 3, GL_FLOAT, sizeof(Vertex), offsetof(Vertex, Normal)});
-
-            m_VBO.BufferData(VBOData, 36);
-
-            m_Shader.AttachShader(OpenGLShader(GL_VERTEX_SHADER, LoadStringFromFile("./res/sh/Skybox.vs")));
-            m_Shader.AttachShader(OpenGLShader(GL_FRAGMENT_SHADER, LoadStringFromFile("./res/sh/Skybox.fs")));
-            m_Shader.Compile();
-
-            CustomModelMatrix = glm::mat4(1.0f);
-
-            m_Camera = CameraPtr;
-        }
-        OpenGLSkybox(const OpenGLTextureSettings& Settings, std::string Filename[6], Camera* CameraPtr = nullptr) {
-            Vertex VBOData[] = {
-                {glm::vec3(-1.0f,  1.0f, -1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-                {glm::vec3(-1.0f, -1.0f, -1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-                {glm::vec3( 1.0f, -1.0f, -1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-                {glm::vec3( 1.0f, -1.0f, -1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-                {glm::vec3( 1.0f,  1.0f, -1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-                {glm::vec3(-1.0f,  1.0f, -1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-
-                {glm::vec3(-1.0f, -1.0f,  1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-                {glm::vec3(-1.0f, -1.0f, -1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-                {glm::vec3(-1.0f,  1.0f, -1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-                {glm::vec3(-1.0f,  1.0f, -1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-                {glm::vec3(-1.0f,  1.0f,  1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-                {glm::vec3(-1.0f, -1.0f,  1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-
-                {glm::vec3( 1.0f, -1.0f, -1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-                {glm::vec3( 1.0f, -1.0f,  1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-                {glm::vec3( 1.0f,  1.0f,  1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-                {glm::vec3( 1.0f,  1.0f,  1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-                {glm::vec3( 1.0f,  1.0f, -1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-                {glm::vec3( 1.0f, -1.0f, -1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-
-                {glm::vec3(-1.0f, -1.0f,  1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-                {glm::vec3(-1.0f,  1.0f,  1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-                {glm::vec3( 1.0f,  1.0f,  1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-                {glm::vec3( 1.0f,  1.0f,  1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-                {glm::vec3( 1.0f, -1.0f,  1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-                {glm::vec3(-1.0f, -1.0f,  1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-
-                {glm::vec3(-1.0f,  1.0f, -1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-                {glm::vec3( 1.0f,  1.0f, -1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-                {glm::vec3( 1.0f,  1.0f,  1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-                {glm::vec3( 1.0f,  1.0f,  1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-                {glm::vec3(-1.0f,  1.0f,  1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-                {glm::vec3(-1.0f,  1.0f, -1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-
-                {glm::vec3(-1.0f, -1.0f, -1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-                {glm::vec3(-1.0f, -1.0f,  1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-                {glm::vec3( 1.0f, -1.0f, -1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-                {glm::vec3( 1.0f, -1.0f, -1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-                {glm::vec3(-1.0f, -1.0f,  1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)},
-                {glm::vec3( 1.0f, -1.0f,  1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)}
-            };
-
-            m_VAO.BufferData(m_VBO, {0, 3, GL_FLOAT, sizeof(Vertex), offsetof(Vertex, Position)});
-            m_VAO.BufferData(m_VBO, {1, 2, GL_FLOAT, sizeof(Vertex), offsetof(Vertex, TexCoord)});
-            m_VAO.BufferData(m_VBO, {2, 3, GL_FLOAT, sizeof(Vertex), offsetof(Vertex, Normal)});
-
-            m_VBO.BufferData(VBOData, 36);
-
-            m_Shader.AttachShader(OpenGLShader(GL_VERTEX_SHADER, LoadStringFromFile("./res/sh/Skybox.vs")));
-            m_Shader.AttachShader(OpenGLShader(GL_FRAGMENT_SHADER, LoadStringFromFile("./res/sh/Skybox.fs")));
-            m_Shader.Compile();
-
-            m_Camera = CameraPtr;
-
-            CustomModelMatrix = glm::mat4(1.0f);
-
-            LoadTextures(Settings, Filename);
-        }
-        ~OpenGLSkybox() {
-
-        }
-
-        void LoadTextures(const OpenGLTextureSettings& Settings, std::string Filename[6]) {
-            m_Texture.BufferData(Settings, Filename);
-        }
-
-        void Update()const {
-            if(m_Camera != nullptr) {
-                m_Shader.SetUniform("u_ProjectionView", m_Camera->GetMatrix());
-                m_Shader.SetUniform("u_Model", glm::translate(glm::mat4(1.0f), m_Camera->Transform.Translation) * CustomModelMatrix);
-            }
-            else {
-                m_Shader.SetUniform("u_ProjectionView", glm::mat4(1.0f));
-                m_Shader.SetUniform("u_Model", glm::mat4(1.0f));
-            }
-
-            m_Shader.SetUniform("u_AlbedoTextureID", 0);
-        }
-
-        const OpenGLVertexBuffer& GetVertexBuffer() const {
-            return m_VBO;
-        }
-        const OpenGLTextureCubeMap& GetTexture() const {
-            return m_Texture;
-        }
-        const OpenGLShaderProgram& GetShader() const {
-            return m_Shader;
-        }
-
-        OpenGLVertexBuffer& GetVertexBufferRef() {
-            return m_VBO;
-        }
-        OpenGLTextureCubeMap& GetTextureRef() {
-            return m_Texture;
-        }
-        OpenGLShaderProgram& GetShaderRef() {
-            return m_Shader;
-        }
-
-        void SetCameraPtr(Camera* a_Camera) {
-            m_Camera = a_Camera;
-        }
-
-    public:
-        glm::mat4 CustomModelMatrix;
-
-    private:
-        OpenGLVertexBuffer m_VBO;
-        OpenGLShaderProgram m_Shader;
-        OpenGLTextureCubeMap m_Texture;
-        Camera* m_Camera;
-};
-
-class OpenGLRenderer {
+Texture2D* Texture2D::Create() {
+    if(RendererAPI::GetAPI() == API::OpenGL) {
+        return new OpenGLTexture2D();
+    }
+}
+Texture2D* Texture2D::Create(const std::string& a_Filename, const TextureSettings& a_Settings) {
+    if(RendererAPI::GetAPI() == API::OpenGL) {
+        return new OpenGLTexture2D(a_Filename, a_Settings);
+    }
+}
+
+class Renderer {
     public:
         static void Clear(const glm::vec4 Color = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f)) {
-            glClearColor( Color.x, Color.y, Color.z, 1.0f );
-            glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+            glClearColor(Color.r, Color.g, Color.b, 1.0f);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         }
-        static void Draw(const OpenGLModel& Model) {
-            if(Model.GetMaterial().IsDepthTested()) {
-                glEnable(GL_DEPTH_TEST);
+        static void Draw(const VertexBuffer* a_VertexBuffer, const Shader* a_Shader) {
+            a_Shader->Bind();
+            a_VertexBuffer->Bind();
+            if(RendererAPI::GetAPI() == API::OpenGL) {
+                glDrawArrays(GL_TRIANGLES, 0, a_VertexBuffer->GetCount());
             }
-            else {
-                glDisable(GL_DEPTH_TEST);
-            }
-            Model.Update();
-            Model.GetMaterial().GetShader().Bind();
-            Model.GetMesh().GetVertexArray().Bind();
-            Model.GetMesh().GetVertexBuffer().Bind();
-            glDrawArrays(GL_TRIANGLES, 0, Model.GetMesh().GetVertexBuffer().GetCount());
-        }
-        static void Draw(const OpenGLSkybox& Skybox) {
-            glDisable(GL_DEPTH_TEST);
-            Skybox.Update();
-            Skybox.GetShader().Bind();
-            Skybox.GetVertexArray().Bind();
-            Skybox.GetVertexBuffer().Bind();
-            Skybox.GetTexture().Bind(0);
-            glDrawArrays(GL_TRIANGLES, 0, Skybox.GetVertexBuffer().GetCount());
-        }
 
+            #ifdef VENUM_DEBUG_EXTREME
+            std::cout << "OpenGL Renderer: " << "Drawn! " << std::endl;
+            #endif // VENUM_DEBUG_EXTREME
+        }
 };
 
 class Collider {
     public:
-        Collider(unsigned int TypeU = Types::POINT, glm::vec3 PositionU = glm::vec3(0.0f), glm::vec3 SizeU = glm::vec3(0.0f), float RadiusU = 0.0f) {
-            Type = TypeU;
-            Position = PositionU;
-            Size = SizeU;
-            Radius = RadiusU;
+        Collider(unsigned int a_Type = POINT, glm::vec3 a_Position = glm::vec3(0.0f), glm::vec3 a_Size = glm::vec3(1.0f), float a_Radius = 1.0f) {
+            Type = a_Type;
+            Position = a_Position;
+            Size = a_Size;
+            Radius = a_Radius;
         }
-        Collider(glm::vec3 PositionU) {
-            Type = Types::POINT;
-            Position = PositionU;
+        Collider(glm::vec3 a_Position) {
+            Type = POINT;
+            Position = a_Position;
             Size = glm::vec3(0.0f);
             Radius = 0.0f;
         }
-        Collider(glm::vec3 PositionU, float RadiusU) {
-            Type = Types::CIRCLE;
-            Position = PositionU;
+        Collider(glm::vec3 a_Position, float a_Radius) {
+            Type = CIRCLE;
+            Position = a_Position;
             Size = glm::vec3(0.0f);
-            Radius = RadiusU;
+            Radius = a_Radius;
         }
-        Collider(glm::vec3 PositionU, glm::vec3 SizeU) {
-            Type = Types::BOX;
-            Position = PositionU;
-            Size = SizeU;
+        Collider(glm::vec3 a_Position, glm::vec3 a_Size) {
+            Type = BOX;
+            Position = a_Position;
+            Size = a_Size;
             Radius = 0.0f;
         }
         ~Collider() {
 
         }
 
-        bool Intersects(const Collider& other) const {
-            if(Type == Types::POINT && other.Type == Types::POINT) {
-                return (other.Position == Position);
+        bool Intersects(const Collider& a_Other) const {
+            if(Type == POINT && a_Other.Type == POINT) {
+                return (a_Other.Position == Position);
             }
-            else if(Type == Types::POINT && other.Type == Types::CIRCLE) {
-                return (glm::distance(Position, other.Position) <= other.Radius);
+            else if(Type == POINT && a_Other.Type == CIRCLE) {
+                return (glm::distance(Position, a_Other.Position) <= a_Other.Radius);
             }
-            else if(Type == Types::POINT && other.Type == Types::BOX) {
-                return (Position.x >= other.Position.x && Position.x <= other.Position.x + other.Size.x) &&
-                        (Position.y >= other.Position.y && Position.y <= other.Position.y + other.Size.y) &&
-                        (Position.z >= other.Position.z && Position.z <= other.Position.z + other.Size.z);
+            else if(Type == POINT && a_Other.Type == BOX) {
+                return (Position.x >= a_Other.Position.x && Position.x <= a_Other.Position.x + a_Other.Size.x) &&
+                        (Position.y >= a_Other.Position.y && Position.y <= a_Other.Position.y + a_Other.Size.y) &&
+                        (Position.z >= a_Other.Position.z && Position.z <= a_Other.Position.z + a_Other.Size.z);
             }
-            else if(Type == Types::CIRCLE && other.Type == Types::POINT) {
-                return (glm::distance(other.Position, Position) <= Radius);
+            else if(Type == CIRCLE && a_Other.Type == POINT) {
+                return (glm::distance(a_Other.Position, Position) <= Radius);
             }
-            else if(Type == Types::CIRCLE && other.Type == Types::CIRCLE) {
-                return (glm::distance(other.Position, Position) <= other.Radius + Radius);
+            else if(Type == CIRCLE && a_Other.Type == CIRCLE) {
+                return (glm::distance(a_Other.Position, Position) <= a_Other.Radius + Radius);
             }
-            else if(Type == Types::CIRCLE && other.Type == Types::BOX) {
+            else if(Type == CIRCLE && a_Other.Type == BOX) {
                 glm::vec3 circleDistance;
-                circleDistance.x = std::abs(Position.x - other.Position.x);
-                circleDistance.y = std::abs(Position.y - other.Position.y);
-                circleDistance.z = std::abs(Position.z - other.Position.z);
+                circleDistance.x = std::abs(Position.x - a_Other.Position.x);
+                circleDistance.y = std::abs(Position.y - a_Other.Position.y);
+                circleDistance.z = std::abs(Position.z - a_Other.Position.z);
 
-                if (circleDistance.x > (other.Size.x/2.0f + Radius)) {
+                if (circleDistance.x > (a_Other.Size.x/2.0f + Radius)) {
                     return false;
                 }
-                if (circleDistance.y > (other.Size.y/2.0f + Radius)) {
+                if (circleDistance.y > (a_Other.Size.y/2.0f + Radius)) {
                     return false;
                 }
-                if (circleDistance.z > (other.Size.z/2.0f + Radius)) {
+                if (circleDistance.z > (a_Other.Size.z/2.0f + Radius)) {
                     return false;
                 }
 
-                if (circleDistance.x <= (other.Size.x/2.0f)) {
+                if (circleDistance.x <= (a_Other.Size.x/2.0f)) {
                     return true;
                 }
-                if (circleDistance.y <= (other.Size.y/2.0f)) {
+                if (circleDistance.y <= (a_Other.Size.y/2.0f)) {
                     return true;
                 }
-                if (circleDistance.z <= (other.Size.z/2.0f)) {
+                if (circleDistance.z <= (a_Other.Size.z/2.0f)) {
                     return true;
                 }
 
-                float cornerDistance_sq = std::pow(circleDistance.x - other.Size.x/2.0f, 2) +
-                                     std::pow(circleDistance.y - other.Size.y/2.0f, 2) +
-                                     std::pow(circleDistance.z - other.Size.z/2.0f, 2);
+                float cornerDistance_sq = std::pow(circleDistance.x - a_Other.Size.x/2.0f, 2) +
+                                     std::pow(circleDistance.y - a_Other.Size.y/2.0f, 2) +
+                                     std::pow(circleDistance.z - a_Other.Size.z/2.0f, 2);
 
                 return (cornerDistance_sq <= pow(Radius, 2));
             }
-            else if(Type == Types::BOX && other.Type == Types::POINT) {
-                return (other.Position.x >= Position.x && other.Position.x <= Position.x + Size.x) &&
-                        (other.Position.y >= Position.y && other.Position.y <= Position.y + Size.y) &&
-                        (other.Position.z >= Position.z && other.Position.z <= Position.z + Size.z);
+            else if(Type == BOX && a_Other.Type == POINT) {
+                return (a_Other.Position.x >= Position.x && a_Other.Position.x <= Position.x + Size.x) &&
+                        (a_Other.Position.y >= Position.y && a_Other.Position.y <= Position.y + Size.y) &&
+                        (a_Other.Position.z >= Position.z && a_Other.Position.z <= Position.z + Size.z);
             }
-            else if(Type == Types::BOX && other.Type == Types::CIRCLE) {
+            else if(Type == BOX && a_Other.Type == CIRCLE) {
                 glm::vec3 circleDistance;
-                circleDistance.x = std::abs(other.Position.x - Position.x);
-                circleDistance.y = std::abs(other.Position.y - Position.y);
-                circleDistance.z = std::abs(other.Position.z - Position.z);
+                circleDistance.x = std::abs(a_Other.Position.x - Position.x);
+                circleDistance.y = std::abs(a_Other.Position.y - Position.y);
+                circleDistance.z = std::abs(a_Other.Position.z - Position.z);
 
-                if (circleDistance.x > (Size.x/2.0f + other.Radius)) {
+                if (circleDistance.x > (Size.x/2.0f + a_Other.Radius)) {
                     return false;
                 }
-                if (circleDistance.y > (Size.y/2.0f + other.Radius)) {
+                if (circleDistance.y > (Size.y/2.0f + a_Other.Radius)) {
                     return false;
                 }
-                if (circleDistance.z > (Size.z/2.0f + other.Radius)) {
+                if (circleDistance.z > (Size.z/2.0f + a_Other.Radius)) {
                     return false;
                 }
 
@@ -1471,12 +1177,12 @@ class Collider {
                                      std::pow(circleDistance.y - Size.y/2.0f, 2) +
                                      std::pow(circleDistance.z - Size.z/2.0f, 2);
 
-                return (cornerDistance_sq <= pow(other.Radius, 2));
+                return (cornerDistance_sq <= pow(a_Other.Radius, 2));
             }
-            else if(Type == Types::BOX && other.Type == Types::BOX) {
-                return (Position.x <= other.Position.x + other.Size.x && Position.x + Size.x >= other.Position.x) &&
-                        (Position.y <= other.Position.y + other.Size.y && Position.y + Size.y >= other.Position.y) &&
-                        (Position.z <= other.Position.z + other.Size.z && Position.z + Size.z >= other.Position.z);
+            else if(Type == BOX && a_Other.Type == BOX) {
+                return (Position.x <= a_Other.Position.x + a_Other.Size.x && Position.x + Size.x >= a_Other.Position.x) &&
+                        (Position.y <= a_Other.Position.y + a_Other.Size.y && Position.y + Size.y >= a_Other.Position.y) &&
+                        (Position.z <= a_Other.Position.z + a_Other.Size.z && Position.z + Size.z >= a_Other.Position.z);
             }
             else {
                 return false;
@@ -1484,7 +1190,7 @@ class Collider {
         }
 
     public:
-        enum Types {
+        enum {
             POINT = 0,
             CIRCLE = 1,
             BOX = 2,
@@ -1496,82 +1202,6 @@ class Collider {
         glm::vec3 Position;
         glm::vec3 Size;
         float Radius;
-};
-class PhysicsBody {
-    public:
-        PhysicsBody(const Collider& ColliderU = Collider()) {
-            m_Collider = ColliderU;
-        }
-        ~PhysicsBody() {
-
-        }
-
-        void ApplyForce(const glm::vec3& Movement) {
-            m_ForceApplied += Movement;
-        }
-        void SetForce(const glm::vec3& Force) {
-            m_ForceApplied = Force;
-        }
-
-        const Collider& GetCollider() const {
-            return m_Collider;
-        }
-        const glm::vec3& GetForceApplied() const {
-            return m_ForceApplied;
-        }
-
-        Collider& GetColliderRef() {
-            return m_Collider;
-        }
-        glm::vec3& GetForceAppliedRef() {
-            return m_ForceApplied;
-        }
-
-    protected:
-        friend class SimplePhysics;
-        void Move(float dt) {
-            m_Collider.Position += m_ForceApplied * dt;
-        }
-
-
-    private:
-        Collider m_Collider;
-        glm::vec3 m_ForceApplied;
-};
-class SimplePhysics {
-    public:
-        SimplePhysics() {
-
-        }
-        ~SimplePhysics() {
-
-        }
-
-        void ClearPhysicsBodyArray() {
-            m_PhysicsBodyPtrs.clear();
-        }
-        void PushPhysicsBody(PhysicsBody& PB) {
-            m_PhysicsBodyPtrs.push_back(&PB);
-        }
-
-        void Update(float dt) {
-            for(unsigned int i = 0; i < m_PhysicsBodyPtrs.size(); i++) {
-                m_PhysicsBodyPtrs[i]->Move(dt);
-            }
-
-            for(unsigned int i = 0; i < m_PhysicsBodyPtrs.size(); i++) {
-                for(unsigned int j = i + 1; j < m_PhysicsBodyPtrs.size(); j++) {
-                    if(m_PhysicsBodyPtrs[i]->GetCollider().Intersects(m_PhysicsBodyPtrs[j]->GetCollider())) {
-                        m_PhysicsBodyPtrs[i]->Move(dt * -1.0f);
-                        m_PhysicsBodyPtrs[j]->Move(dt * -1.0f);
-                    }
-                }
-            }
-        }
-
-
-    private:
-        std::vector<PhysicsBody*> m_PhysicsBodyPtrs;
 };
 
 
