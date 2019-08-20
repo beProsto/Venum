@@ -617,10 +617,10 @@ class OpenGLVertexBuffer: public VertexBuffer {
 
             glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), reinterpret_cast<void*>(0));
             glEnableVertexAttribArray(0);
-            glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), reinterpret_cast<void*>(sizeof(glm::vec3)));
+            glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), reinterpret_cast<void*>(sizeof(glm::vec3)));
+            glEnableVertexAttribArray(1);
+            glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), reinterpret_cast<void*>(sizeof(glm::vec3) + sizeof(glm::vec2)));
             glEnableVertexAttribArray(2);
-            glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), reinterpret_cast<void*>(sizeof(glm::vec3) + sizeof(glm::vec2)));
-            glEnableVertexAttribArray(3);
 
             m_Count = 0;
 
@@ -637,10 +637,10 @@ class OpenGLVertexBuffer: public VertexBuffer {
 
             glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), reinterpret_cast<void*>(0));
             glEnableVertexAttribArray(0);
-            glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), reinterpret_cast<void*>(sizeof(glm::vec3)));
+            glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), reinterpret_cast<void*>(sizeof(glm::vec3)));
+            glEnableVertexAttribArray(1);
+            glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), reinterpret_cast<void*>(sizeof(glm::vec3) + sizeof(glm::vec2)));
             glEnableVertexAttribArray(2);
-            glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), reinterpret_cast<void*>(sizeof(glm::vec3) + sizeof(glm::vec2)));
-            glEnableVertexAttribArray(3);
 
             BufferData(a_Data);
 
@@ -657,10 +657,10 @@ class OpenGLVertexBuffer: public VertexBuffer {
 
             glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), reinterpret_cast<void*>(0));
             glEnableVertexAttribArray(0);
-            glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), reinterpret_cast<void*>(sizeof(glm::vec3)));
+            glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), reinterpret_cast<void*>(sizeof(glm::vec3)));
+            glEnableVertexAttribArray(1);
+            glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), reinterpret_cast<void*>(sizeof(glm::vec3) + sizeof(glm::vec2)));
             glEnableVertexAttribArray(2);
-            glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), reinterpret_cast<void*>(sizeof(glm::vec3) + sizeof(glm::vec2)));
-            glEnableVertexAttribArray(3);
 
             BufferData(a_Data, a_Count);
 
@@ -747,6 +747,94 @@ VertexBuffer* VertexBuffer::Create(Vertex3D* a_Data, unsigned int a_Count) {
         return new OpenGLVertexBuffer(a_Data, a_Count);
     }
 }
+void LoadVerticesFromOBJFile(const std::string& a_Filename, std::vector<Vertex3D>& a_Data) {
+    std::fstream f_File(a_Filename);
+
+    if(!f_File.is_open()) {
+        std::cerr <<  "Unable to find file: '" << a_Filename << "'!" << std::endl;
+        return;
+    }
+
+    std::vector<glm::vec3> f_Positions;
+    std::vector<glm::vec2> f_TexCoords;
+    std::vector<glm::vec3> f_Normals;
+
+    a_Data.clear();
+
+    std::string f_Line;
+    while(std::getline(f_File, f_Line)) {
+        unsigned int f_SlashCount = 0;
+        for(char& c : f_Line) {
+            if(c == '/') {
+                c = ' ';
+                f_SlashCount++;
+            }
+        }
+
+        unsigned int f_VerticesInFace = f_SlashCount / 2;
+
+        std::strstream f_LineStream;
+        f_LineStream << f_Line;
+
+        if(f_Line[0] == 'v' && f_Line[1] == ' ') {
+            std::string f_Junk;
+            glm::vec3 f_Data;
+            f_LineStream >> f_Junk >> f_Data.x >> f_Data.y >> f_Data.z;
+            f_Positions.push_back(f_Data);
+        }
+        else if(f_Line[0] == 'v' && f_Line[1] == 't') {
+            std::string f_Junk;
+            glm::vec2 f_Data;
+            f_LineStream >> f_Junk >> f_Data.x >> f_Data.y;
+            f_TexCoords.push_back(f_Data);
+        }
+        else if(f_Line[0] == 'v' && f_Line[1] == 'n') {
+            std::string f_Junk;
+            glm::vec3 f_Data;
+            f_LineStream >> f_Junk >> f_Data.x >> f_Data.y >> f_Data.z;
+            f_Normals.push_back(f_Data);
+        }
+        else if(f_Line[0] == 'f' && f_Line[1] == ' ') {
+            std::string f_Junk;
+
+            if(f_VerticesInFace == 3) {
+                unsigned int f_IndexPosition1, f_IndexTexCoord1, f_IndexNormal1,
+                            f_IndexPosition2, f_IndexTexCoord2, f_IndexNormal2,
+                            f_IndexPosition3, f_IndexTexCoord3, f_IndexNormal3;
+
+                f_LineStream >> f_Junk >> f_IndexPosition1 >> f_IndexTexCoord1 >> f_IndexNormal1
+                            >> f_IndexPosition2 >> f_IndexTexCoord2 >> f_IndexNormal2
+                            >> f_IndexPosition3 >> f_IndexTexCoord3 >> f_IndexNormal3;
+
+                a_Data.push_back(Vertex3D(f_Positions[f_IndexPosition1 - 1], f_TexCoords[f_IndexTexCoord1 - 1], f_Normals[f_IndexNormal1 - 1]));
+                a_Data.push_back(Vertex3D(f_Positions[f_IndexPosition2 - 1], f_TexCoords[f_IndexTexCoord2 - 1], f_Normals[f_IndexNormal2 - 1]));
+                a_Data.push_back(Vertex3D(f_Positions[f_IndexPosition3 - 1], f_TexCoords[f_IndexTexCoord3 - 1], f_Normals[f_IndexNormal3 - 1]));
+            }
+            else if(f_VerticesInFace == 4) {
+                unsigned int f_IndexPosition1, f_IndexTexCoord1, f_IndexNormal1,
+                            f_IndexPosition2, f_IndexTexCoord2, f_IndexNormal2,
+                            f_IndexPosition3, f_IndexTexCoord3, f_IndexNormal3,
+                            f_IndexPosition4, f_IndexTexCoord4, f_IndexNormal4;
+
+                f_LineStream >> f_Junk >> f_IndexPosition1 >> f_IndexTexCoord1 >> f_IndexNormal1
+                            >> f_IndexPosition2 >> f_IndexTexCoord2 >> f_IndexNormal2
+                            >> f_IndexPosition3 >> f_IndexTexCoord3 >> f_IndexNormal3
+                            >> f_IndexPosition4 >> f_IndexTexCoord4 >> f_IndexNormal4;
+
+                a_Data.push_back(Vertex3D(f_Positions[f_IndexPosition1 - 1], f_TexCoords[f_IndexTexCoord1 - 1], f_Normals[f_IndexNormal1 - 1]));
+                a_Data.push_back(Vertex3D(f_Positions[f_IndexPosition2 - 1], f_TexCoords[f_IndexTexCoord2 - 1], f_Normals[f_IndexNormal2 - 1]));
+                a_Data.push_back(Vertex3D(f_Positions[f_IndexPosition3 - 1], f_TexCoords[f_IndexTexCoord3 - 1], f_Normals[f_IndexNormal3 - 1]));
+
+                a_Data.push_back(Vertex3D(f_Positions[f_IndexPosition3 - 1], f_TexCoords[f_IndexTexCoord3 - 1], f_Normals[f_IndexNormal3 - 1]));
+                a_Data.push_back(Vertex3D(f_Positions[f_IndexPosition4 - 1], f_TexCoords[f_IndexTexCoord4 - 1], f_Normals[f_IndexNormal4 - 1]));
+                a_Data.push_back(Vertex3D(f_Positions[f_IndexPosition1 - 1], f_TexCoords[f_IndexTexCoord1 - 1], f_Normals[f_IndexNormal1 - 1]));
+            }
+            else {
+                assert(false);
+            }
+        }
+    }
+}
 
 class ShaderElement {
     public:
@@ -757,6 +845,10 @@ class ShaderElement {
         }
 
         virtual void Compile(unsigned int a_Type, const std::string& a_Source) {
+
+        }
+
+        virtual bool DestroyAfterAttaching() const {
 
         }
 
@@ -992,12 +1084,10 @@ class Texture2D {
 class OpenGLTexture2D: public Texture2D {
     public:
         OpenGLTexture2D() {
-            glGenTextures(1, &m_RendererID);
-            glBindTexture(GL_TEXTURE_2D, m_RendererID);
+            glCreateTextures(GL_TEXTURE_2D, 1, &m_RendererID);
         }
         OpenGLTexture2D(const std::string& a_Filename, const TextureSettings& a_Settings) {
-            glGenTextures(1, &m_RendererID);
-            glBindTexture(GL_TEXTURE_2D, m_RendererID);
+            glCreateTextures(GL_TEXTURE_2D, 1, &m_RendererID);
             BufferData(a_Filename, a_Settings);
         }
         ~OpenGLTexture2D() {
