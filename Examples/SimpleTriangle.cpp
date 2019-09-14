@@ -1,7 +1,8 @@
 #include "Engine.hpp"
 
 int main(int argc, char** argv) {
-    Window.Create();
+    Window Window;
+    Window.Create("Venum Window Example");
     SDL_Event Event;
 
     std::string VertexShaderSource = "\n\
@@ -23,14 +24,9 @@ int main(int argc, char** argv) {
     void main() { \n\
         o_Color = vec4(1.0f, 0.0f, 0.0f, 1.0f); \n\
     } ";
-    
-    ShaderElement* TestVertexShader = ShaderElement::Create(GL_VERTEX_SHADER, VertexShaderSource);
-    ShaderElement* TestFragmentShader = ShaderElement::Create(GL_FRAGMENT_SHADER, FragmentShaderSource);
 
-    Shader* TestShader = Shader::Create(TestVertexShader, TestFragmentShader);
-    
-    delete TestVertexShader;
-    delete TestFragmentShader;
+    Shader* TestShader = Shader::Create(ShaderElement::Create(GL_VERTEX_SHADER, VertexShaderSource), 
+                                       ShaderElement::Create(GL_FRAGMENT_SHADER, FragmentShaderSource));
 
     Vertex3D TestVertexBufferData[] = {
         Vertex3D(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f),
@@ -39,7 +35,9 @@ int main(int argc, char** argv) {
     };
 
     VertexBuffer* TestVertexBuffer = VertexBuffer::Create(TestVertexBufferData, 3);
-
+    
+    Renderer::Init();
+    
     while(Window.Running()) {
         Window.PollEvent(&Event);
 
