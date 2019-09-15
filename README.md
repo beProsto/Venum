@@ -38,5 +38,3 @@ Now. You can learn everything about venum from:
 - Reading the source 
 - Reading documentation (it's my fav, and yes - I'm in the process of creating it)
 
-
-#### I'm reorganizing the project, so there will be a rly big update
