@@ -1,8 +1,7 @@
 #include "Engine.hpp"
 
 int main(int argc, char** argv) {
-    Window Window;
-    Window.Create("Venum Window Example");
+    Window Window("Venum Window Example");
     SDL_Event Event;
 
     std::string VertexShaderSource = "\n\
@@ -39,7 +38,7 @@ int main(int argc, char** argv) {
     Renderer::Init();
     
     while(Window.Running()) {
-        Window.PollEvent(&Event);
+        Window.PollEvent(Event);
 
         Renderer::Clear();
 
