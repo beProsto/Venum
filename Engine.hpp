@@ -30,8 +30,6 @@
 
 namespace Venum { // Just for some testing
 
-}
-
 std::string LoadStringFromFile(const std::string& a_Filename) {
     std::ifstream f_File;
     f_File.open(a_Filename);
@@ -70,57 +68,6 @@ template <typename T> T Constrain(T a_Value, T a_Start, T a_Stop) {
     }
 }
 
-enum class API {
-    OpenGL = 0,
-};
-class RendererAPI {
-    public:
-        static API GetAPI() {
-            #ifdef VENUM_DEBUG_EXTREME
-            std::cout << "'GetAPI()' Used! " << std::endl;
-            #endif // VENUM_DEBUG_EXTREME
-            return s_API;
-        }
-
-    private:
-        static API s_API;
-};
-API RendererAPI::s_API = API::OpenGL;
-
-class ViewportClass {
-    public:
-        void Update() {
-            if(RendererAPI::GetAPI() == API::OpenGL) {
-                glViewport(Position.x, Position.y, Size.x, Size.y);
-            }
-            #ifdef VENUM_DEBUG_EXTREME
-            std::cout << "Viewport set to: " << Position.x << " : " << Position.y << " ; " << Size.x << " : " << Size.y << std::endl;
-            #endif // VENUM_DEBUG_EXTREME
-        }
-        void Update(glm::vec2 a_Position, glm::vec2 a_Size) {
-            Position = a_Position;
-            Size = a_Size;
-            if(RendererAPI::GetAPI() == API::OpenGL) {
-                glViewport(Position.x, Position.y, Size.x, Size.y);
-            }
-            #ifdef VENUM_DEBUG_EXTREME
-            std::cout << "Viewport set to: " << Position.x << " : " << Position.y << " ; " << Size.x << " : " << Size.y << std::endl;
-            #endif // VENUM_DEBUG_EXTREME
-        }
-
-        float GetAspect() {
-            #ifdef VENUM_DEBUG_EXTREME
-            std::cout << "'GetAspect()' Used! " << std::endl;
-            #endif // VENUM_DEBUG_EXTREME
-            return Size.x / Size.y;
-        }
-
-    public:
-        glm::vec2 Position;
-        glm::vec2 Size;
-};
-ViewportClass Viewport;
-
 class Window {
     public:
         Window() {
@@ -130,9 +77,7 @@ class Window {
             Create(a_Title, a_Width, a_Height, a_Flags);
         }
         ~Window() {
-            if(RendererAPI::GetAPI() == API::OpenGL) {
-                SDL_GL_DeleteContext(m_Context);
-            }
+            SDL_GL_DeleteContext(m_Context);
             SDL_DestroyWindow(m_Window);
             #ifdef Mixer
             Mix_Quit();
@@ -155,28 +100,26 @@ class Window {
             }
             #endif // Mixer
 
-            m_Window = SDL_CreateWindow(a_Title.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, a_Width, a_Height, (RendererAPI::GetAPI() == API::OpenGL ? SDL_WINDOW_OPENGL : SDL_WINDOW_VULKAN) | a_Flags);
+            m_Window = SDL_CreateWindow(a_Title.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, a_Width, a_Height, SDL_WINDOW_OPENGL | a_Flags);
 
-            if(RendererAPI::GetAPI() == API::OpenGL) {
-                m_Context = SDL_GL_CreateContext(m_Window);
+            m_Context = SDL_GL_CreateContext(m_Window);
 
-                SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
-                SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
-                SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
-                SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 8);
-                SDL_GL_SetAttribute(SDL_GL_BUFFER_SIZE, 32);
+            SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
+            SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
+            SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
+            SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 8);
+            SDL_GL_SetAttribute(SDL_GL_BUFFER_SIZE, 32);
 
-                SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
+            SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
 
-                SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+            SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 
-                glewExperimental = GL_TRUE;
-                if(glewInit(  ) != GLEW_OK) {
-                    std::cerr << "Can't initialize GLEW!" << std::endl;
-                    return false;
-                }
+            glewExperimental = GL_TRUE;
+            if(glewInit(  ) != GLEW_OK) {
+                std::cerr << "Can't initialize GLEW!" << std::endl;
+                return false;
             }
-            Viewport.Update(glm::vec2(0, 0), glm::vec2(GetWidth(), GetHeight()));
+            glViewport(0, 0, GetWidth(), GetHeight());
 
             #ifdef VENUM_DEBUG_EXTREME
             std::cout << "Window Created! " << std::endl;
@@ -196,15 +139,17 @@ class Window {
         }
 
         bool PollEvent(SDL_Event& a_Event) {
-            if(SDL_PollEvent(&a_Event)) {
+            while(SDL_PollEvent(&a_Event)) {
                 if(a_Event.type == SDL_QUIT) {
                     Close();
+                    return true;
                 }
-                return true;
+                else {
+                    return true;
+                }
             }
-            else {
-                return false;
-            }
+            return false;
+
             #ifdef VENUM_DEBUG_EXTREME
             std::cout << "Event Polled! " << std::endl;
             #endif // VENUM_DEBUG_EXTREME
@@ -448,6 +393,9 @@ class Transform3D {
             Rotation = a_Rotation;
             Scale = a_Scale;
         }
+        Transform3D(const Transform3D& a_Other) {
+            (*this) = a_Other;
+        }
         ~Transform3D() {
 
         }
@@ -466,11 +414,26 @@ class Transform3D {
             return GetPositionMatrix() * GetRotationMatrix() * GetScaleMatrix();
         }
 
+        Transform3D& operator=(const Transform3D& a_Other) {
+            Position = a_Other.Position;
+            Rotation = a_Other.Rotation;
+            Scale = a_Other.Scale;
+        }
+
     public:
         glm::vec3 Position, Rotation, Scale;
 };
+enum class CameraType {
+    None = 0,
+    C3D = 1,
+    C2D = 2,
+};
 class Camera {
     public:
+        Camera(Transform3D a_Transform = Transform3D(), float a_Aspect = 16.0f / 9.0f) {
+            Transform = a_Transform;
+            Aspect = a_Aspect;
+        }
         glm::vec3 GetForward() const {
             return Transform.GetRotationMatrix() * glm::vec4(0.0f, 0.0f, -1.0f, 1.0f);
         }
@@ -496,21 +459,34 @@ class Camera {
 
     public:
         Transform3D Transform;
+        float Aspect;
 };
 class Camera3D: public Camera {
     public:
-        Camera3D(const Transform3D& a_Transform = Transform3D(), float a_FOV = 90.0f, float a_Near = 0.01f, float a_Far = 1000.0f) {
+        Camera3D(const Transform3D& a_Transform = Transform3D(), float a_FOV = 90.0f, float a_Near = 0.01f, float a_Far = 1000.0f, float a_Aspect = 16.0f / 9.0f) {
             Transform = a_Transform;
+            Aspect = Aspect;
             FOV = a_FOV;
             Near = a_Near;
             Far = a_Far;
+        }
+        Camera3D(const Camera3D& a_Other) {
+            (*this) = a_Other;
         }
         ~Camera3D() {
 
         }
 
         glm::mat4 GetMatrix() const {
-            return glm::perspective(glm::radians(FOV), Viewport.GetAspect(), Near, Far) * glm::inverse(Transform.GetMatrix());
+            return glm::perspective(glm::radians(FOV), Aspect, Near, Far) * glm::inverse(Transform.GetMatrix());
+        }
+
+        Camera3D& operator=(const Camera3D& a_Other) {
+            Transform = a_Other.Transform;
+            Aspect = a_Other.Aspect;
+            FOV = a_Other.FOV;
+            Near = a_Other.Near;
+            Far = a_Other.Far;
         }
 
     public:
@@ -519,24 +495,41 @@ class Camera3D: public Camera {
 };
 class Camera2D: public Camera {
     public:
-        Camera2D(Transform3D a_Transform = Transform3D(), glm::vec2 a_LeftDown = glm::vec2(-1.0f, -1.0f), glm::vec2 a_RightTop = glm::vec2(1.0f, 1.0f), float a_Near = 0.0f, float a_Far = 1000.0f) {
+        Camera2D(Transform3D a_Transform = Transform3D(), float a_Left = -1.0f, float a_Down = -1.0f, float a_Right = 1.0f, float a_Top = 1.0f, float a_Near = 0.0f, float a_Far = 1000.0f) {
             Transform = a_Transform;
-            LeftDown = a_LeftDown;
-            RightTop = a_RightTop;
+            Left = a_Left;
+            Down = a_Down;
+            Right = a_Right;
+            Top = a_Top;
             Near = a_Near;
             Far = a_Far;
+            Aspect = 16.0f / 9.0f;
+        }
+        Camera2D(const Camera2D& a_Other) {
+            (*this) = a_Other;
         }
         ~Camera2D() {
 
         }
 
         glm::mat4 GetMatrix() const {
-            return glm::ortho(LeftDown.x, RightTop.x, LeftDown.y, RightTop.y, Near, Far) * glm::inverse(Transform.GetMatrix());
+            return glm::ortho(Left, Right, Down, Top, Near, Far) * glm::inverse(Transform.GetMatrix());
+        }
+
+        Camera2D& operator=(const Camera2D& a_Other) {
+            Transform = a_Other.Transform;
+            Left = a_Other.Left;
+            Down = a_Other.Down;
+            Right = a_Other.Right;
+            Top = a_Other.Top;
+            Near = a_Other.Near;
+            Far = a_Other.Far;
+            Aspect = a_Other.Aspect;
         }
 
     public:
-        glm::vec2 LeftDown;
-        glm::vec2 RightTop;
+        float Left, Down;
+        float Right, Top;
         float Near, Far;
 };
 
@@ -563,9 +556,6 @@ class Vertex3D {
 };
 class VertexBuffer {
     public:
-        static VertexBuffer* Create();
-        static VertexBuffer* Create(const std::vector<Vertex3D>& a_Data);
-        static VertexBuffer* Create(Vertex3D* a_Data, unsigned int a_Count);
         virtual ~VertexBuffer() {
 
         }
@@ -711,21 +701,6 @@ class OpenGLVertexBuffer: public VertexBuffer {
         unsigned int m_Count;
         unsigned int m_VARendererID;
 };
-VertexBuffer* VertexBuffer::Create() {
-    if(RendererAPI::GetAPI() == API::OpenGL) {
-        return new OpenGLVertexBuffer();
-    }
-}
-VertexBuffer* VertexBuffer::Create(const std::vector<Vertex3D>& a_Data) {
-    if(RendererAPI::GetAPI() == API::OpenGL) {
-        return new OpenGLVertexBuffer(a_Data);
-    }
-}
-VertexBuffer* VertexBuffer::Create(Vertex3D* a_Data, unsigned int a_Count) {
-    if(RendererAPI::GetAPI() == API::OpenGL) {
-        return new OpenGLVertexBuffer(a_Data, a_Count);
-    }
-}
 void LoadVerticesFromOBJFile(const std::string& a_Filename, std::vector<Vertex3D>& a_Data) {
     std::fstream f_File(a_Filename);
 
@@ -817,8 +792,6 @@ void LoadVerticesFromOBJFile(const std::string& a_Filename, std::vector<Vertex3D
 
 class ShaderElement {
     public:
-        static ShaderElement* Create();
-        static ShaderElement* Create(unsigned int a_Type, const std::string& a_Source);
         virtual ~ShaderElement() {
 
         }
@@ -826,11 +799,6 @@ class ShaderElement {
         virtual void Compile(unsigned int a_Type, const std::string& a_Source) {
 
         }
-
-        virtual bool DestroyAfterAttaching() const {
-
-        }
-
 };
 class OpenGLShaderElement: public ShaderElement {
     public:
@@ -888,20 +856,8 @@ class OpenGLShaderElement: public ShaderElement {
         unsigned int m_RendererID;
         bool m_Created;
 };
-ShaderElement* ShaderElement::Create() {
-    if(RendererAPI::GetAPI() == API::OpenGL) {
-        return new OpenGLShaderElement();
-    }
-}
-ShaderElement* ShaderElement::Create(unsigned int a_Type, const std::string& a_Source) {
-    if(RendererAPI::GetAPI() == API::OpenGL) {
-        return new OpenGLShaderElement(a_Type, a_Source);
-    }
-}
 class Shader {
     public:
-        static Shader* Create();
-        static Shader* Create(const ShaderElement* a_VertexShader, const ShaderElement* a_FragmentShader, bool a_Compile = true, bool a_DeleteShaderElements = true);
         virtual ~Shader() {
 
         }
@@ -1020,20 +976,9 @@ class OpenGLShader: public Shader {
     private:
         unsigned int m_RendererID;
 };
-Shader* Shader::Create() {
-    if(RendererAPI::GetAPI() == API::OpenGL) {
-        return new OpenGLShader();
-    }
-}
-Shader* Shader::Create(const ShaderElement* a_VertexShader, const ShaderElement* a_FragmentShader, bool a_Compile, bool a_DeleteShaderElements) {
-    if(RendererAPI::GetAPI() == API::OpenGL) {
-        return new OpenGLShader(a_VertexShader, a_FragmentShader, a_Compile, a_DeleteShaderElements);
-    }
-}
 
 class FrameBuffer {
     public:
-        static FrameBuffer* Create(unsigned int a_Width = 0, unsigned int a_Height = 0);
         virtual ~FrameBuffer() {
 
         }
@@ -1069,11 +1014,6 @@ class OpenGLFrameBuffer: public FrameBuffer {
     private:
         unsigned int m_RendererID;
 };
-FrameBuffer* FrameBuffer::Create(unsigned int a_Width, unsigned int a_Height) {
-    if(RendererAPI::GetAPI() == API::OpenGL) {
-        return new OpenGLFrameBuffer(a_Width, a_Height);
-    }
-}
 
 class TextureSettings {
     public:
@@ -1091,8 +1031,6 @@ class TextureSettings {
 };
 class Texture2D {
     public:
-        static Texture2D* Create();
-        static Texture2D* Create(const std::string& a_Filename, const TextureSettings& a_Settings = TextureSettings());
         virtual ~Texture2D() {
 
         }
@@ -1163,32 +1101,148 @@ class OpenGLTexture2D: public Texture2D {
     private:
         unsigned int m_RendererID;
 };
-Texture2D* Texture2D::Create() {
-    if(RendererAPI::GetAPI() == API::OpenGL) {
-        return new OpenGLTexture2D();
-    }
-}
-Texture2D* Texture2D::Create(const std::string& a_Filename, const TextureSettings& a_Settings) {
-    if(RendererAPI::GetAPI() == API::OpenGL) {
-        return new OpenGLTexture2D(a_Filename, a_Settings);
-    }
-}
 
+class Viewport {
+    public:
+        Viewport(glm::vec2 a_Position = glm::vec2(0.0f, 0.0f), glm::vec2 a_Size = glm::vec2(640.0f, 360.0f)) {
+            #ifdef VENUM_DEBUG_EXTREME
+            std::cout << "Viewport Constructed! " << std::endl;
+            #endif // VENUM_DEBUG_EXTREME
+            Position = a_Position;
+            Size = a_Size;
+        }
+        ~Viewport() {
+
+        }
+
+        float GetAspect() const {
+            #ifdef VENUM_DEBUG_EXTREME
+            std::cout << "'GetAspect()' Used! " << std::endl;
+            #endif // VENUM_DEBUG_EXTREME
+            return Size.x / Size.y;
+        }
+
+    public:
+        glm::vec2 Position;
+        glm::vec2 Size;
+};
+
+enum class API {
+    None = 0,
+    OpenGL = 1,
+};
 class Renderer {
     public:
-        static void Init() {
-            if(RendererAPI::GetAPI() == API::OpenGL) {
-                glEnable(GL_DEPTH_TEST);
+        static Renderer* Create(API a_API);
+        virtual ~Renderer() {
 
-                glEnable(GL_BLEND);
-                glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-                glEnable(GL_CULL_FACE);
-                glCullFace(GL_BACK);
-                glFrontFace(GL_CW);
-            }
         }
-        static void Clear(bool a_ClearColor = true, bool a_ClearDepth = true, bool a_ClearStencil = false) {
+
+        virtual VertexBuffer* VertexBufferCreate() {
+            return nullptr;
+        }
+        virtual VertexBuffer* VertexBufferCreate(const std::vector<Vertex3D>& a_Data) {
+            return nullptr;
+        }
+        virtual VertexBuffer* VertexBufferCreate(Vertex3D* a_Data, unsigned int a_Count) {
+            return nullptr;
+        }
+
+        virtual ShaderElement* ShaderElementCreate() {
+            return nullptr;
+        }
+        virtual ShaderElement* ShaderElementCreate(unsigned int a_Type, const std::string& a_Source) {
+            return nullptr;
+        }
+
+        virtual Shader* ShaderCreate() {
+            return nullptr;
+        }
+        virtual Shader* ShaderCreate(const ShaderElement* a_VertexShader, const ShaderElement* a_FragmentShader, bool a_Compile = true, bool a_DeleteShaderElements = true) {
+            return nullptr;
+        }
+
+        virtual FrameBuffer* FrameBufferCreate(unsigned int a_Width = 0, unsigned int a_Height = 0) {
+            return nullptr;
+        }
+
+        virtual Texture2D* Texture2DCreate() {
+            return nullptr;
+        }
+        virtual Texture2D* Texture2DCreate(const std::string& a_Filename, const TextureSettings& a_Settings = TextureSettings()) {
+            return nullptr;
+        }
+
+        virtual void Init() {
+
+        }
+        virtual void Clear(bool a_ClearColor = true, bool a_ClearDepth = true, bool a_ClearStencil = false) {
+
+        }
+        virtual void Draw(VertexBuffer* a_VertexBuffer, Shader* a_Shader) {
+
+        }
+
+        virtual API GetAPI() const {
+            return API::None;
+        }
+};
+class OpenGLRenderer: public Renderer {
+    public:
+        OpenGLRenderer() {
+
+        }
+        ~OpenGLRenderer() {
+
+        }
+
+        VertexBuffer* VertexBufferCreate() {
+            return new OpenGLVertexBuffer();
+        }
+        VertexBuffer* VertexBufferCreate(const std::vector<Vertex3D>& a_Data) {
+            return new OpenGLVertexBuffer(a_Data);
+        }
+        VertexBuffer* VertexBufferCreate(Vertex3D* a_Data, unsigned int a_Count) {
+            return new OpenGLVertexBuffer(a_Data, a_Count);
+        }
+
+        ShaderElement* ShaderElementCreate() {
+            return new OpenGLShaderElement();
+        }
+        ShaderElement* ShaderElementCreate(unsigned int a_Type, const std::string& a_Source) {
+            return new OpenGLShaderElement(a_Type, a_Source);
+        }
+
+        Shader* ShaderCreate() {
+            return new OpenGLShader();
+        }
+        Shader* ShaderCreate(const ShaderElement* a_VertexShader, const ShaderElement* a_FragmentShader, bool a_Compile = true, bool a_DeleteShaderElements = true) {
+            return new OpenGLShader(a_VertexShader, a_FragmentShader, a_Compile, a_DeleteShaderElements);
+        }
+
+        FrameBuffer* FrameBufferCreate(unsigned int a_Width = 0, unsigned int a_Height = 0) {
+            return new OpenGLFrameBuffer(a_Width, a_Height);
+        }
+
+        Texture2D* Texture2DCreate() {
+            return new OpenGLTexture2D();
+        }
+        Texture2D* Texture2DCreate(const std::string& a_Filename, const TextureSettings& a_Settings = TextureSettings()) {
+            return new OpenGLTexture2D(a_Filename, a_Settings);
+        }
+
+        void Init() {
+            glEnable(GL_DEPTH_TEST);
+
+            glEnable(GL_BLEND);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+            glEnable(GL_CULL_FACE);
+            glCullFace(GL_BACK);
+            glFrontFace(GL_CW);
+
+        }
+        void Clear(bool a_ClearColor = true, bool a_ClearDepth = true, bool a_ClearStencil = false) {
             glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
             glClear((a_ClearColor ? GL_COLOR_BUFFER_BIT : 0) | (a_ClearDepth ? GL_DEPTH_BUFFER_BIT : 0) | (a_ClearStencil ? GL_STENCIL_BUFFER_BIT : 0));
 
@@ -1196,17 +1250,29 @@ class Renderer {
             std::cout << "OpenGL Renderer: " << "Cleared! " << std::endl;
             #endif // VENUM_DEBUG_EXTREME
         }
-        static void Draw(const VertexBuffer* a_VertexBuffer, const Shader* a_Shader) {
+        void Draw(VertexBuffer* a_VertexBuffer, Shader* a_Shader) {
             a_Shader->Bind();
             a_VertexBuffer->Bind();
-            if(RendererAPI::GetAPI() == API::OpenGL) {
-                glDrawArrays(GL_TRIANGLES, 0, a_VertexBuffer->GetCount());
-            }
+
+            glDrawArrays(GL_TRIANGLES, 0, a_VertexBuffer->GetCount());
 
             #ifdef VENUM_DEBUG_EXTREME
             std::cout << "OpenGL Renderer: " << "Drawn! " << std::endl;
             #endif // VENUM_DEBUG_EXTREME
         }
-};
 
+        API GetAPI() const {
+            return API::OpenGL;
+        }
+};
+Renderer* Renderer::Create(API a_API) {
+    if(a_API == API::OpenGL) {
+        return new OpenGLRenderer();
+    }
+    else {
+        return nullptr;
+    }
+}
+
+}
 #endif // ENGINE_HPP_INCLUDED
