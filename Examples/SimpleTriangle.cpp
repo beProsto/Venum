@@ -1,7 +1,8 @@
 #include "Engine.hpp"
 
 int main(int argc, char** argv) {
-    Window Window("Venum Window Example");
+    Venum::Renderer* Renderer = Venum::Renderer::Create(Venum::API::OpenGL);
+    Venum::Window Window("Venum Simple Triangle Example");
     SDL_Event Event;
 
     std::string VertexShaderSource = "\n\
@@ -24,31 +25,32 @@ int main(int argc, char** argv) {
         o_Color = vec4(1.0f, 0.0f, 0.0f, 1.0f); \n\
     } ";
 
-    Shader* TestShader = Shader::Create(ShaderElement::Create(GL_VERTEX_SHADER, VertexShaderSource), 
-                                       ShaderElement::Create(GL_FRAGMENT_SHADER, FragmentShaderSource));
+    Venum::Shader* TestShader = Renderer->ShaderCreate(Renderer->ShaderElementCreate(GL_VERTEX_SHADER, VertexShaderSource), 
+                                                        Renderer->ShaderElementCreate(GL_FRAGMENT_SHADER, FragmentShaderSource));
 
-    Vertex3D TestVertexBufferData[] = {
-        Vertex3D(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f),
-        Vertex3D(0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f),
-        Vertex3D(1.0f, 1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f),
+    Venum::Vertex3D TestVertexBufferData[] = {
+        Venum::Vertex3D(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f),
+        Venum::Vertex3D(0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f),
+        Venum::Vertex3D(1.0f, 1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f),
     };
 
-    VertexBuffer* TestVertexBuffer = VertexBuffer::Create(TestVertexBufferData, 3);
+    Venum::VertexBuffer* TestVertexBuffer = Renderer->VertexBufferCreate(TestVertexBufferData, 3);
     
-    Renderer::Init();
+    Renderer->Init();
     
     while(Window.Running()) {
         Window.PollEvent(Event);
 
-        Renderer::Clear();
+        Renderer->Clear();
 
-        Renderer::Draw(TestVertexBuffer, TestShader);
+        Renderer->Draw(TestVertexBuffer, TestShader);
 
         Window.SwapBuffers();
     }
     
     delete TestShader;
     delete TestVertexBuffer;
+    delete Renderer;
 
     return 0;
 }
