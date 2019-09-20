@@ -79,11 +79,7 @@ class Window {
         ~Window() {
             SDL_GL_DeleteContext(m_Context);
             SDL_DestroyWindow(m_Window);
-            #ifdef Mixer
-            Mix_Quit();
-            #endif // Mixer
-            IMG_Quit();
-            SDL_Quit();
+
             #ifdef VENUM_DEBUG_EXTREME
             std::cout << "Window Destructed! " << std::endl;
             #endif // VENUM_DEBUG_EXTREME
@@ -91,14 +87,6 @@ class Window {
 
         bool Create(const std::string& a_Title, unsigned int a_Width = 640, unsigned int a_Height = 360, unsigned int a_Flags = 0) {
             m_Running = true;
-            SDL_Init(SDL_INIT_EVERYTHING);
-            IMG_Init(IMG_INIT_JPG | IMG_INIT_PNG | IMG_INIT_TIF | IMG_INIT_WEBP);
-            #ifdef Mixer
-            Mix_Init(MIX_INIT_FLAC | MIX_INIT_MP3 | MIX_INIT_OGG | MIX_INIT_MID | MIX_INIT_MOD | MIX_INIT_OPUS);
-            if(Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0) {
-                return false;
-            }
-            #endif // Mixer
 
             m_Window = SDL_CreateWindow(a_Title.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, a_Width, a_Height, SDL_WINDOW_OPENGL | a_Flags);
 
@@ -174,6 +162,9 @@ class Window {
             SDL_GetWindowSize(m_Window, &f_Width, &f_Height);
             return static_cast<unsigned int>(f_Height);
         }
+        glm::uvec2 GetSize() {
+            return glm::uvec2(GetWidth(), GetHeight());
+        }
         SDL_Window* GetWindow() {
             return m_Window;
         }
@@ -207,8 +198,8 @@ class Mouse {
             return (f_State == a_Button);
         }
 
-        static void SetPosition(Window* a_Window, glm::vec2 a_Position) {
-            SDL_WarpMouseInWindow(a_Window->GetWindow(), a_Position.x, a_Position.y);
+        static void SetPosition(Window& a_Window, glm::vec2 a_Position) {
+            SDL_WarpMouseInWindow(a_Window.GetWindow(), a_Position.x, a_Position.y);
         }
         static void SetVisibility(bool a_Visible) {
             SDL_ShowCursor(a_Visible);
@@ -701,19 +692,19 @@ class OpenGLVertexBuffer: public VertexBuffer {
         unsigned int m_Count;
         unsigned int m_VARendererID;
 };
-void LoadVerticesFromOBJFile(const std::string& a_Filename, std::vector<Vertex3D>& a_Data) {
+std::vector<Vertex3D> LoadVerticesFromOBJFile(const std::string& a_Filename) {
     std::fstream f_File(a_Filename);
 
     if(!f_File.is_open()) {
         std::cerr <<  "Unable to find file: '" << a_Filename << "'!" << std::endl;
-        return;
+        return {};
     }
 
     std::vector<glm::vec3> f_Positions;
     std::vector<glm::vec2> f_TexCoords;
     std::vector<glm::vec3> f_Normals;
 
-    a_Data.clear();
+    std::vector<Vertex3D> f_FinalData;
 
     std::string f_Line;
     while(std::getline(f_File, f_Line)) {
@@ -760,9 +751,9 @@ void LoadVerticesFromOBJFile(const std::string& a_Filename, std::vector<Vertex3D
                             >> f_IndexPosition2 >> f_IndexTexCoord2 >> f_IndexNormal2
                             >> f_IndexPosition3 >> f_IndexTexCoord3 >> f_IndexNormal3;
 
-                a_Data.push_back(Vertex3D(f_Positions[f_IndexPosition1 - 1], f_TexCoords[f_IndexTexCoord1 - 1], f_Normals[f_IndexNormal1 - 1]));
-                a_Data.push_back(Vertex3D(f_Positions[f_IndexPosition2 - 1], f_TexCoords[f_IndexTexCoord2 - 1], f_Normals[f_IndexNormal2 - 1]));
-                a_Data.push_back(Vertex3D(f_Positions[f_IndexPosition3 - 1], f_TexCoords[f_IndexTexCoord3 - 1], f_Normals[f_IndexNormal3 - 1]));
+                f_FinalData.push_back(Vertex3D(f_Positions[f_IndexPosition1 - 1], f_TexCoords[f_IndexTexCoord1 - 1], f_Normals[f_IndexNormal1 - 1]));
+                f_FinalData.push_back(Vertex3D(f_Positions[f_IndexPosition2 - 1], f_TexCoords[f_IndexTexCoord2 - 1], f_Normals[f_IndexNormal2 - 1]));
+                f_FinalData.push_back(Vertex3D(f_Positions[f_IndexPosition3 - 1], f_TexCoords[f_IndexTexCoord3 - 1], f_Normals[f_IndexNormal3 - 1]));
             }
             else if(f_VerticesInFace == 4) {
                 unsigned int f_IndexPosition1, f_IndexTexCoord1, f_IndexNormal1,
@@ -775,19 +766,22 @@ void LoadVerticesFromOBJFile(const std::string& a_Filename, std::vector<Vertex3D
                             >> f_IndexPosition3 >> f_IndexTexCoord3 >> f_IndexNormal3
                             >> f_IndexPosition4 >> f_IndexTexCoord4 >> f_IndexNormal4;
 
-                a_Data.push_back(Vertex3D(f_Positions[f_IndexPosition1 - 1], f_TexCoords[f_IndexTexCoord1 - 1], f_Normals[f_IndexNormal1 - 1]));
-                a_Data.push_back(Vertex3D(f_Positions[f_IndexPosition2 - 1], f_TexCoords[f_IndexTexCoord2 - 1], f_Normals[f_IndexNormal2 - 1]));
-                a_Data.push_back(Vertex3D(f_Positions[f_IndexPosition3 - 1], f_TexCoords[f_IndexTexCoord3 - 1], f_Normals[f_IndexNormal3 - 1]));
+                f_FinalData.push_back(Vertex3D(f_Positions[f_IndexPosition1 - 1], f_TexCoords[f_IndexTexCoord1 - 1], f_Normals[f_IndexNormal1 - 1]));
+                f_FinalData.push_back(Vertex3D(f_Positions[f_IndexPosition2 - 1], f_TexCoords[f_IndexTexCoord2 - 1], f_Normals[f_IndexNormal2 - 1]));
+                f_FinalData.push_back(Vertex3D(f_Positions[f_IndexPosition3 - 1], f_TexCoords[f_IndexTexCoord3 - 1], f_Normals[f_IndexNormal3 - 1]));
 
-                a_Data.push_back(Vertex3D(f_Positions[f_IndexPosition3 - 1], f_TexCoords[f_IndexTexCoord3 - 1], f_Normals[f_IndexNormal3 - 1]));
-                a_Data.push_back(Vertex3D(f_Positions[f_IndexPosition4 - 1], f_TexCoords[f_IndexTexCoord4 - 1], f_Normals[f_IndexNormal4 - 1]));
-                a_Data.push_back(Vertex3D(f_Positions[f_IndexPosition1 - 1], f_TexCoords[f_IndexTexCoord1 - 1], f_Normals[f_IndexNormal1 - 1]));
+                f_FinalData.push_back(Vertex3D(f_Positions[f_IndexPosition3 - 1], f_TexCoords[f_IndexTexCoord3 - 1], f_Normals[f_IndexNormal3 - 1]));
+                f_FinalData.push_back(Vertex3D(f_Positions[f_IndexPosition4 - 1], f_TexCoords[f_IndexTexCoord4 - 1], f_Normals[f_IndexNormal4 - 1]));
+                f_FinalData.push_back(Vertex3D(f_Positions[f_IndexPosition1 - 1], f_TexCoords[f_IndexTexCoord1 - 1], f_Normals[f_IndexNormal1 - 1]));
             }
             else {
+                std::cerr << "Unable to load models with faces containing more than 4 vertices! Problematic file: " << a_Filename << std::endl;
                 assert(false);
             }
         }
     }
+
+    return f_FinalData;
 }
 
 class ShaderElement {
@@ -1104,27 +1098,29 @@ class OpenGLTexture2D: public Texture2D {
 
 class Viewport {
     public:
-        Viewport(glm::vec2 a_Position = glm::vec2(0.0f, 0.0f), glm::vec2 a_Size = glm::vec2(640.0f, 360.0f)) {
+        Viewport(glm::ivec2 a_Position = glm::vec2(0.0f, 0.0f), glm::uvec2 a_Size = glm::vec2(640.0f, 360.0f)) {
+            Position = a_Position;
+            Size = a_Size;
+
             #ifdef VENUM_DEBUG_EXTREME
             std::cout << "Viewport Constructed! " << std::endl;
             #endif // VENUM_DEBUG_EXTREME
-            Position = a_Position;
-            Size = a_Size;
         }
         ~Viewport() {
 
         }
 
         float GetAspect() const {
+            return static_cast<float>(Size.x) / static_cast<float>(Size.y);
+
             #ifdef VENUM_DEBUG_EXTREME
             std::cout << "'GetAspect()' Used! " << std::endl;
             #endif // VENUM_DEBUG_EXTREME
-            return Size.x / Size.y;
         }
 
     public:
-        glm::vec2 Position;
-        glm::vec2 Size;
+        glm::ivec2 Position;
+        glm::uvec2 Size;
 };
 
 enum class API {
@@ -1133,7 +1129,6 @@ enum class API {
 };
 class Renderer {
     public:
-        static Renderer* Create(API a_API);
         virtual ~Renderer() {
 
         }
@@ -1179,12 +1174,18 @@ class Renderer {
         virtual void Clear(bool a_ClearColor = true, bool a_ClearDepth = true, bool a_ClearStencil = false) {
 
         }
+        virtual void SetViewport(const Viewport& a_Viewport = Viewport()) {
+
+        }
         virtual void Draw(VertexBuffer* a_VertexBuffer, Shader* a_Shader) {
 
         }
 
         virtual API GetAPI() const {
             return API::None;
+        }
+        virtual std::string GetAPIString() const {
+            return "None";
         }
 };
 class OpenGLRenderer: public Renderer {
@@ -1237,10 +1238,9 @@ class OpenGLRenderer: public Renderer {
             glEnable(GL_BLEND);
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-            glEnable(GL_CULL_FACE);
-            glCullFace(GL_BACK);
-            glFrontFace(GL_CW);
-
+            #ifdef VENUM_DEBUG_EXTREME
+            std::cout << "OpenGL Renderer: " << "Initialized! " << std::endl;
+            #endif // VENUM_DEBUG_EXTREME
         }
         void Clear(bool a_ClearColor = true, bool a_ClearDepth = true, bool a_ClearStencil = false) {
             glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -1249,6 +1249,9 @@ class OpenGLRenderer: public Renderer {
             #ifdef VENUM_DEBUG_EXTREME
             std::cout << "OpenGL Renderer: " << "Cleared! " << std::endl;
             #endif // VENUM_DEBUG_EXTREME
+        }
+        void SetViewport(const Viewport& a_Viewport = Viewport()) {
+            glViewport(a_Viewport.Position.x, a_Viewport.Position.y, a_Viewport.Size.x, a_Viewport.Size.y);
         }
         void Draw(VertexBuffer* a_VertexBuffer, Shader* a_Shader) {
             a_Shader->Bind();
@@ -1264,15 +1267,75 @@ class OpenGLRenderer: public Renderer {
         API GetAPI() const {
             return API::OpenGL;
         }
+        std::string GetAPIString() const {
+            return "OpenGL";
+        }
 };
-Renderer* Renderer::Create(API a_API) {
-    if(a_API == API::OpenGL) {
-        return new OpenGLRenderer();
-    }
-    else {
-        return nullptr;
-    }
-}
+
+template<typename T> class ScopePointer {
+    public:
+        explicit ScopePointer(T* a_Pointer = nullptr) {
+            m_Pointer = a_Pointer;
+        }
+        ScopePointer(const ScopePointer<T>& a_Copy) = delete;
+        ~ScopePointer() {
+            delete m_Pointer;
+        }
+
+        ScopePointer<T>& operator=(T* a_Pointer) {
+            m_Pointer = a_Pointer;
+            return *this;
+        }
+        ScopePointer<T>& operator=(const ScopePointer<T>& a_Copy) = delete;
+
+        operator T*() {
+            return m_Pointer;
+        }
+        T* operator->() {
+            return m_Pointer;
+        }
+        T& operator*() {
+            return *m_Pointer;
+        }
+
+        T* operator()() {
+            return m_Pointer;
+        }
+        T* Get() {
+            return m_Pointer;
+        }
+
+        template<typename Y> Y* DynamicCast() {
+            return dynamic_cast<Y*>(m_Pointer);
+        }
+
+    private:
+        T* m_Pointer;
+};
+
+int Main();
 
 }
+
+int main(int argc, char** argv) {
+    SDL_Init(SDL_INIT_EVERYTHING);
+    IMG_Init(IMG_INIT_JPG | IMG_INIT_PNG | IMG_INIT_TIF | IMG_INIT_WEBP);
+    #ifdef Mixer
+    Mix_Init(MIX_INIT_FLAC | MIX_INIT_MP3 | MIX_INIT_OGG | MIX_INIT_MID | MIX_INIT_MOD | MIX_INIT_OPUS);
+    if(Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0) {
+        return false;
+    }
+    #endif // Mixer
+
+    int f_Returned = Venum::Main();
+
+    #ifdef Mixer
+    Mix_Quit();
+    #endif // Mixer
+    IMG_Quit();
+    SDL_Quit();
+
+    return f_Returned;
+}
+
 #endif // ENGINE_HPP_INCLUDED
