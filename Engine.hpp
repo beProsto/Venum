@@ -1,6 +1,7 @@
 #ifndef ENGINE_HPP_INCLUDED
 #define ENGINE_HPP_INCLUDED
 
+/* Including all the needed libraries (GLEW, SDL2, SDL2_image, SDL2_mixer(if "Mixer" defined), GLM)*/
 #include <GL/glew.h>
 
 #include <SDL2/SDL.h>
@@ -19,44 +20,55 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include <cstddef>
 #include <string>
 #include <fstream>
 #include <strstream>
-#include <cstdlib>
-#include <ctime>
-#include <memory>
-#include <map>
 
-namespace Venum { // Just for some testing
+/* Error checking. (A little addition of mine is that little if statement at the end. You can use it if you want :D) */
+#define VEN_IFFUCKEDUP(a_Happened, a_Error) bool f_Happened = a_Happened; if(f_Happened){std::cerr << "VEN_IFFUCKEDUP Error: " << a_Error << std::endl;} if(f_Happened)
+/* The same error checking thing, but you can't use the if at the end, as it is already used to make an assertion. */
+#define VEN_IFFUCKEDUPBREAK(a_Happened, a_Error) VEN_IFFUCKEDUP(a_Happened, a_Error) { assert(false); }
 
+/* Namespace in which everything will be */
+namespace Venum {
+
+/* Function used for loading file content as a string */
 std::string LoadStringFromFile(const std::string& a_Filename) {
-    std::ifstream f_File;
-    f_File.open(a_Filename);
+    /* Creating a filestream and opening a file with it */
+    std::ifstream f_File(a_Filename);
 
+    /* If file has opened correctly, load a string from it */
     if(f_File.good()) {
+        /* The result string */
         std::string f_Result = "";
 
+        /* Line string - The file is being read line by line, so we have to loop through it */
         std::string f_Line;
         while(std::getline(f_File, f_Line)) {
+            /* Adding the lines content to the result string */
             f_Result += f_Line;
+            /* Adding an end-line to the result string */
             f_Result += '\n';
         }
         #ifdef VENUM_DEBUG_EXTREME
         std::cout << "Loaded file: '" << a_Filename << "' Using 'LoadStringFromFile' Function! " << std::endl;
         #endif // VENUM_DEBUG_EXTREME
 
+        /* Returning the result string */
         return f_Result;
     }
     else {
+        /* If the file hasn't opened correctly, state an error and return nothing */
         std::cerr << "Unable to load file from string: '" << a_Filename << "'!" << std::endl;
         return "";
     }
 }
-template <typename T> T Map(T a_Value, T a_Start1, T a_Stop1, T a_Start2, T a_Stop2) {
+/* Function used to map a value in one range to a value in another range */
+template<typename T> T Map(T a_Value, T a_Start1, T a_Stop1, T a_Start2, T a_Stop2) {
 	return ((a_Value - a_Start1) / (a_Stop1 - a_Start1)) * (a_Stop2 - a_Start2) + a_Start2;
 }
-template <typename T> T Constrain(T a_Value, T a_Start, T a_Stop) {
+/* Function used to constrain a value to some range */
+template<typename T> T Constrain(T a_Value, T a_Start, T a_Stop) {
     if(a_Value < a_Start) {
         return a_Start;
     }
@@ -68,57 +80,166 @@ template <typename T> T Constrain(T a_Value, T a_Start, T a_Stop) {
     }
 }
 
+/* Class made for windowing and event handling */
 class Window {
+    private:
+        /* Class for getting the keyboards keys state */
+        class KeyboardClass {
+            public:
+                /* Empty constructor */
+                KeyboardClass() {
+                    f_Keystate = SDL_GetKeyboardState(NULL);
+                }
+                /* Empty Destructor */
+                ~KeyboardClass() {
+
+                }
+
+                /* Function for getting the keys state */
+                bool GetKeyState(Uint32 a_ScanCode) const {
+                    return f_Keystate[a_ScanCode];
+                }
+
+            protected:
+                const Uint8* f_Keystate;
+
+                friend class Window;
+        };
+        /* Class for getting the mouses position, buttons state, visibility, wheels rotation, and setting position and visibility */
+        class MouseClass {
+            public:
+                /* Empty constructor */
+                MouseClass() {
+                    m_WheelRotation = 0;
+                    m_Window = nullptr;
+                }
+                /* Empty Destructor */
+                ~MouseClass() {
+
+                }
+
+                /* Function for getting the mouse's position */
+                glm::vec2 GetPosition() {
+                    int f_MousePosition[2];
+                    SDL_GetMouseState(&f_MousePosition[0], &f_MousePosition[1]);
+                    return glm::vec2(f_MousePosition[0], f_MousePosition[1]);
+                }
+                /* Function for getting the mouse's wheel's */
+                int GetWheelRotation() {
+                    return m_WheelRotation;
+                }
+                /* Function for getting the cursor's visibility */
+                bool GetVisibility() {
+                    return SDL_ShowCursor(-1);
+                }
+                /* Function for getting the button's state */
+                bool GetButtonDown(unsigned int a_Button) {
+                    int f_MousePosition[2];
+                    Uint32 f_State = SDL_GetMouseState(&f_MousePosition[0], &f_MousePosition[1]);
+                    return (f_State == a_Button);
+                }
+
+                /* Function for setting the mouse's position */
+                void SetPosition(glm::vec2 a_Position) {
+                    SDL_WarpMouseInWindow(m_Window->GetWindow(), a_Position.x, a_Position.y);
+                }
+                /* Function for setting the cursor's visibility */
+                void SetVisibility(bool a_Visible) {
+                    SDL_ShowCursor(a_Visible);
+                }
+
+            protected:
+                Window* m_Window;
+                int m_WheelRotation;
+
+                friend class Window;
+        };
+
     public:
+        /* Empty constructor, just in case we would want to create window later than creating the object itself */
         Window() {
-
+            m_Running = false;
+            m_Created = false;
         }
+        /* Constructor calling Create() function. Used if we want to create the window when we create the object. Automatically calls VEN_IFFUCKEDUPASSERT() also, just to be sure the application works properly */
         Window(const std::string& a_Title, unsigned int a_Width = 640, unsigned int a_Height = 360, unsigned int a_Flags = 0) {
-            Create(a_Title, a_Width, a_Height, a_Flags);
+            VEN_IFFUCKEDUPBREAK(!Create(a_Title, a_Width, a_Height, a_Flags), "Fockin window ain't opening!");
         }
+        /* Destructor, Deletes the context and destroys the window */
         ~Window() {
-            SDL_GL_DeleteContext(m_Context);
-            SDL_DestroyWindow(m_Window);
+            if(m_Created) {
+                SDL_GL_DeleteContext(m_Context);
+                SDL_DestroyWindow(m_Window);
 
-            #ifdef VENUM_DEBUG_EXTREME
-            std::cout << "Window Destructed! " << std::endl;
-            #endif // VENUM_DEBUG_EXTREME
+                #ifdef VENUM_DEBUG_EXTREME
+                std::cout << "Window Destructed! " << std::endl;
+                #endif // VENUM_DEBUG_EXTREME
+            }
         }
 
+        /* Create function, used to create the window. Creates the window and the context, also sets the OpenGL attributes. If something went wrong it returns false, otherwise returns true */
         bool Create(const std::string& a_Title, unsigned int a_Width = 640, unsigned int a_Height = 360, unsigned int a_Flags = 0) {
-            m_Running = true;
+            if(!m_Created) {
+                /* Setting Running variable to true, as the window should run now */
+                m_Running = false;
+                /* Setting Created variable to true, as the window has created */
+                m_Created = false;
+                /* Creating the window */
+                m_Window = SDL_CreateWindow(a_Title.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, a_Width, a_Height, SDL_WINDOW_OPENGL | a_Flags);
+                if(m_Window == NULL) {
+                    /* If couldn't create window, give out an error, return false */
+                    std::cerr << "Can't create window!" << std::endl;
+                    return false;
+                }
+                /* Creating the context */
+                m_Context = SDL_GL_CreateContext(m_Window);
+                if(m_Context == NULL) {
+                    /* If couldn't create context, give out an error, return false */
+                    std::cerr << "Can't create context!" << std::endl;
+                    return false;
+                }
 
-            m_Window = SDL_CreateWindow(a_Title.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, a_Width, a_Height, SDL_WINDOW_OPENGL | a_Flags);
+                /* Setting all the needed attributes */
+                SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
+                SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
+                SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
+                SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 8);
+                SDL_GL_SetAttribute(SDL_GL_BUFFER_SIZE, 32);
 
-            m_Context = SDL_GL_CreateContext(m_Window);
+                SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+                SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
 
-            SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
-            SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
-            SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
-            SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 8);
-            SDL_GL_SetAttribute(SDL_GL_BUFFER_SIZE, 32);
+                SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 
-            SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
+                /* Initializing OpenGL */
+                glewExperimental = GL_TRUE;
+                if(glewInit() != GLEW_OK) {
+                    /* If couldn't initialize, give out an error, return false */
+                    std::cerr << "Can't initialize GLEW!" << std::endl;
+                    return false;
+                }
 
-            SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+                #ifdef VENUM_DEBUG_EXTREME
+                std::cout << "Window Created! " << std::endl;
+                #endif // VENUM_DEBUG_EXTREME
 
-            glewExperimental = GL_TRUE;
-            if(glewInit(  ) != GLEW_OK) {
-                std::cerr << "Can't initialize GLEW!" << std::endl;
+                /* Sets the mouses window pointer component to this window */
+                Mouse.m_Window = this;
+                /* If everything went all right set Running and Created to true and return true */
+                m_Running = true;
+                m_Created = true;
+                return true;
+            }
+            else {
                 return false;
             }
-            glViewport(0, 0, GetWidth(), GetHeight());
-
-            #ifdef VENUM_DEBUG_EXTREME
-            std::cout << "Window Created! " << std::endl;
-            #endif // VENUM_DEBUG_EXTREME
-
-            return true;
         }
 
-        bool Running() {
+        /* Returns Running variable */
+        bool Running() const {
             return m_Running;
         }
+        /* Sets running to false */
         void Close() {
             #ifdef VENUM_DEBUG_EXTREME
             std::cout << "Window Closed! " << std::endl;
@@ -126,102 +247,100 @@ class Window {
             m_Running = false;
         }
 
-        bool PollEvent(SDL_Event& a_Event) {
-            while(SDL_PollEvent(&a_Event)) {
-                if(a_Event.type == SDL_QUIT) {
+        /* Closes the window if the event for it has been polled */
+        bool PollEvent() {
+            SDL_Event f_Event;
+            bool f_EventHappened = false;
+            Mouse.m_WheelRotation = 0;
+            /* Loops through every event that has been polled */
+            while(SDL_PollEvent(&f_Event)) {
+                /* If the event's type is quit request then close the window */
+                if(f_Event.type == SDL_QUIT) {
                     Close();
-                    return true;
                 }
-                else {
-                    return true;
+                /* If the event's type is mouse wheel rotation request then change mouse wheel rotation in Mouse object */
+                else if(f_Event.type == SDL_MOUSEWHEEL) {
+                    Mouse.m_WheelRotation += f_Event.wheel.y;
                 }
+                /* If any event has been polled, set the return variable (EventHappened) to true, otherwise it is false */
+                f_EventHappened = true;
             }
-            return false;
 
             #ifdef VENUM_DEBUG_EXTREME
             std::cout << "Event Polled! " << std::endl;
             #endif // VENUM_DEBUG_EXTREME
+
+            /* Return the return variable */
+            return f_EventHappened;
         }
 
+        /* Function for swapping the main FrameBuffer with windows frame buffer */
         void SwapBuffers() {
             SDL_GL_SwapWindow(m_Window);
+
             #ifdef VENUM_DEBUG_EXTREME
             std::cout << "Window Buffer and Main Buffer Swapped! " << std::endl;
             #endif // VENUM_DEBUG_EXTREME
         }
 
-        unsigned int GetWidth() {
+        /* Fuction for getting the width of the window */
+        unsigned int GetWidth() const {
             int f_Width;
             int f_Height;
             SDL_GetWindowSize(m_Window, &f_Width, &f_Height);
             return static_cast<unsigned int>(f_Width);
         }
-        unsigned int GetHeight() {
+        /* Function for getting the height of the window */
+        unsigned int GetHeight() const {
             int f_Width;
             int f_Height;
             SDL_GetWindowSize(m_Window, &f_Width, &f_Height);
             return static_cast<unsigned int>(f_Height);
         }
-        glm::uvec2 GetSize() {
+        /* Function for getting the size of the window */
+        glm::uvec2 GetSize() const {
             return glm::uvec2(GetWidth(), GetHeight());
         }
-        SDL_Window* GetWindow() {
+
+        /* Fuction for getting the window */
+        SDL_Window* GetWindow() const {
             return m_Window;
         }
+
+    public:
+        MouseClass Mouse;
+        KeyboardClass Keyboard;
 
     private:
         SDL_Window* m_Window;
         SDL_GLContext m_Context;
         bool m_Running;
+        bool m_Created;
 };
 
-class Keyboard {
-    public:
-        static bool GetKeyState(Uint32 a_ScanCode) {
-            const Uint8* f_Keystate = SDL_GetKeyboardState(NULL);
-            return f_Keystate[a_ScanCode];
-        }
-};
-class Mouse {
-    public:
-        static glm::vec2 GetPosition() {
-            int f_MousePosition[2];
-            SDL_GetMouseState(&f_MousePosition[0], &f_MousePosition[1]);
-            return glm::vec2(f_MousePosition[0], f_MousePosition[1]);
-        }
-        static bool GetVisibility() {
-            return SDL_ShowCursor(-1);
-        }
-        static bool GetButtonDown(unsigned int a_Button) {
-            int f_MousePosition[2];
-            Uint32 f_State = SDL_GetMouseState(&f_MousePosition[0], &f_MousePosition[1]);
-            return (f_State == a_Button);
-        }
-
-        static void SetPosition(Window& a_Window, glm::vec2 a_Position) {
-            SDL_WarpMouseInWindow(a_Window.GetWindow(), a_Position.x, a_Position.y);
-        }
-        static void SetVisibility(bool a_Visible) {
-            SDL_ShowCursor(a_Visible);
-        }
-};
-
+/* Class for real time timing :p */
 class Timer {
     public:
+        /* Empty constructor */
         Timer() {
+
         }
+        /* Empty destructor */
         ~Timer() {
 
         }
 
-        void UpdateStart() {
+        /* Function for reseting the timer */
+        void Start() {
             m_StartTicks = SDL_GetTicks();
         }
-        void UpdateEnd() {
+        /* Function for ending the timer */
+        void End() {
             m_ElapsedTicks = SDL_GetTicks() - m_StartTicks;
             m_DeltaTime = (float)m_ElapsedTicks * 0.001f;
         }
 
+        /* Function for getting how much seconds elapsed between start and end */
         float GetDeltaTime() {
             return m_DeltaTime;
         }
@@ -231,18 +350,23 @@ class Timer {
         unsigned int m_ElapsedTicks;
         float m_DeltaTime;
 };
+/* Class for limiting the fps */
 class FPSLimiter {
     public:
+        /* Constructor assigning frame rate limit */
         FPSLimiter(unsigned int a_FPS = 60) {
             SetFPSLimit(a_FPS);
         }
+        /* Empty destructor */
         ~FPSLimiter() {
 
         }
 
+        /* Start of the frame */
         void UpdateStart() {
             m_Cycle = SDL_GetTicks();
         }
+        /* End of the frame - delaying the next frame if the frame was too fast */
         void UpdateEnd() {
             unsigned int f_CycleEnd = SDL_GetTicks();
             unsigned int f_CycleDifference = f_CycleEnd - m_Cycle;
@@ -252,6 +376,7 @@ class FPSLimiter {
             }
         }
 
+        /* Function for setting the frame rate limit */
         void SetFPSLimit(unsigned int a_FPS) {
             m_FPSLimit = a_FPS;
         }
@@ -261,7 +386,9 @@ class FPSLimiter {
         unsigned int m_FPSLimit;
 };
 
+/* Only if "Mixer" was defined */
 #ifdef Mixer
+/* Music class, only one can play at a time */
 class Music {
     public:
         Music() {
@@ -314,6 +441,7 @@ class Music {
     private:
         Mix_Music* m_Sample;
 };
+/* Sound class, a lot can play at once */
 class Sound {
     public:
         Sound(int a_Channel = 0) {
@@ -377,38 +505,61 @@ class Sound {
 };
 #endif // Mixer
 
+/* Transform class - for objects transformations (position, rotation and scale) */
 class Transform3D {
     public:
+        /* Constructor taking in a position, rotation and scale */
         Transform3D(glm::vec3 a_Position = glm::vec3(0.0f), glm::vec3 a_Rotation = glm::vec3(0.0f), glm::vec3 a_Scale = glm::vec3(1.0f)) {
             Position = a_Position;
             Rotation = a_Rotation;
             Scale = a_Scale;
         }
+        /* Copy constructor */
         Transform3D(const Transform3D& a_Other) {
-            (*this) = a_Other;
+            *this = a_Other;
         }
+        /* Empty destructor */
         ~Transform3D() {
 
         }
 
+        /* Function for getting the rotation of a point in 2D coordinates */
+        static float PointsRotation2D(glm::vec2 a_Point) {
+            glm::vec2 f_Point = glm::normalize(a_Point);
+            return (a_Point != glm::vec2(0.0f) ? glm::degrees(std::atan2(f_Point.y, f_Point.x)) : 0.0f);
+        }
+        /* Function for getting the rotation of a point in 3D coordinates */
+        static glm::vec3 PointsRotation3D(glm::vec3 a_Point) {
+            glm::vec3 f_Point = glm::normalize(a_Point);
+            return (a_Point != glm::vec3(0.0f, 1.0f, 0.0f) ? glm::degrees(glm::eulerAngles(glm::quatLookAt(f_Point, glm::vec3(0.0f, 1.0f, 0.0f)))) : glm::vec3(0.0f));
+        }
+
+        /* Function for getting the translation matrix */
         glm::mat4 GetPositionMatrix() const {
             return glm::translate(glm::mat4(1.0f), Position);
         }
+        /* Function for getting the rotation matrix */
         glm::mat4 GetRotationMatrix() const {
+            /* We are using quaternions for it, as they are a lot simpler to use compared to 3 different matrices that have to be multiplied :D */
             return glm::toMat4(glm::quat(glm::radians(Rotation)));
         }
+        /* Function for getting the scale matrix */
         glm::mat4 GetScaleMatrix() const {
             return glm::scale(glm::mat4(1.0f), Scale);
         }
 
+        /* Function for getting the full model matrix */
         glm::mat4 GetMatrix() const {
+            /* We are just simply multiplying translation, rotation and scale matrix */
             return GetPositionMatrix() * GetRotationMatrix() * GetScaleMatrix();
         }
 
+        /* The equal sign operator, used to copy contents of the other transform to that one */
         Transform3D& operator=(const Transform3D& a_Other) {
             Position = a_Other.Position;
             Rotation = a_Other.Rotation;
             Scale = a_Other.Scale;
+            return *this;
         }
 
     public:
@@ -416,14 +567,13 @@ class Transform3D {
 };
 enum class CameraType {
     None = 0,
-    C3D = 1,
-    C2D = 2,
+    Camera3D = 1,
+    Camera2D = 2,
 };
 class Camera {
     public:
-        Camera(Transform3D a_Transform = Transform3D(), float a_Aspect = 16.0f / 9.0f) {
+        Camera(Transform3D a_Transform = Transform3D()) {
             Transform = a_Transform;
-            Aspect = a_Aspect;
         }
         glm::vec3 GetForward() const {
             return Transform.GetRotationMatrix() * glm::vec4(0.0f, 0.0f, -1.0f, 1.0f);
@@ -448,9 +598,12 @@ class Camera {
             return glm::mat4(1.0f);
         }
 
+        virtual CameraType GetType() const {
+            return CameraType::None;
+        }
+
     public:
         Transform3D Transform;
-        float Aspect;
 };
 class Camera3D: public Camera {
     public:
@@ -462,7 +615,7 @@ class Camera3D: public Camera {
             Far = a_Far;
         }
         Camera3D(const Camera3D& a_Other) {
-            (*this) = a_Other;
+            *this = a_Other;
         }
         ~Camera3D() {
 
@@ -472,17 +625,23 @@ class Camera3D: public Camera {
             return glm::perspective(glm::radians(FOV), Aspect, Near, Far) * glm::inverse(Transform.GetMatrix());
         }
 
+        CameraType GetType() const {
+            return CameraType::Camera3D;
+        }
+
         Camera3D& operator=(const Camera3D& a_Other) {
             Transform = a_Other.Transform;
             Aspect = a_Other.Aspect;
             FOV = a_Other.FOV;
             Near = a_Other.Near;
             Far = a_Other.Far;
+            return *this;
         }
 
     public:
         float FOV;
         float Near, Far;
+        float Aspect;
 };
 class Camera2D: public Camera {
     public:
@@ -494,10 +653,9 @@ class Camera2D: public Camera {
             Top = a_Top;
             Near = a_Near;
             Far = a_Far;
-            Aspect = 16.0f / 9.0f;
         }
         Camera2D(const Camera2D& a_Other) {
-            (*this) = a_Other;
+            *this = a_Other;
         }
         ~Camera2D() {
 
@@ -505,6 +663,10 @@ class Camera2D: public Camera {
 
         glm::mat4 GetMatrix() const {
             return glm::ortho(Left, Right, Down, Top, Near, Far) * glm::inverse(Transform.GetMatrix());
+        }
+
+        CameraType GetType() const {
+            return CameraType::Camera2D;
         }
 
         Camera2D& operator=(const Camera2D& a_Other) {
@@ -515,7 +677,7 @@ class Camera2D: public Camera {
             Top = a_Other.Top;
             Near = a_Other.Near;
             Far = a_Other.Far;
-            Aspect = a_Other.Aspect;
+            return *this;
         }
 
     public:
@@ -1282,11 +1444,16 @@ template<typename T> class ScopePointer {
             delete m_Pointer;
         }
 
-        ScopePointer<T>& operator=(T* a_Pointer) {
-            m_Pointer = a_Pointer;
+        ScopePointer<T>& operator=(T* a_Pointer) = delete;
+        ScopePointer<T>& operator=(const ScopePointer<T>& a_Copy) = delete;
+
+        ScopePointer<T>& operator()(T* a_Pointer) {
+            if(a_Pointer != m_Pointer) {
+                delete m_Pointer;
+                m_Pointer = a_Pointer;
+            }
             return *this;
         }
-        ScopePointer<T>& operator=(const ScopePointer<T>& a_Copy) = delete;
 
         operator T*() {
             return m_Pointer;
@@ -1298,11 +1465,14 @@ template<typename T> class ScopePointer {
             return *m_Pointer;
         }
 
-        T* operator()() {
-            return m_Pointer;
-        }
         T* Get() {
             return m_Pointer;
+        }
+
+        T* Loose() {
+            T* f_Returned = m_Pointer;
+            m_Pointer = nullptr;
+            return f_Returned;
         }
 
         template<typename Y> Y* DynamicCast() {
@@ -1313,11 +1483,14 @@ template<typename T> class ScopePointer {
         T* m_Pointer;
 };
 
+/* Venum::Main() is the function in which your main code will run. */
 int Main();
 
 }
 
+/* Definition of main, which initializes SDL, runs the Venum::Main() and quits SDL. */
 int main(int argc, char** argv) {
+    /* Initializing SDL */
     SDL_Init(SDL_INIT_EVERYTHING);
     IMG_Init(IMG_INIT_JPG | IMG_INIT_PNG | IMG_INIT_TIF | IMG_INIT_WEBP);
     #ifdef Mixer
@@ -1327,8 +1500,10 @@ int main(int argc, char** argv) {
     }
     #endif // Mixer
 
+    /* Running the Venum::Main() function. */
     int f_Returned = Venum::Main();
 
+    /* Quitting SDL */
     #ifdef Mixer
     Mix_Quit();
     #endif // Mixer
